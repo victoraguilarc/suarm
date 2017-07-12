@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 import click
+from .cluster import *
+
 
 @click.group(chain=True)
 def main():
@@ -21,16 +23,26 @@ def scale(config, node, plan):
     click.echo('scale')
 
 
+@main.command('ssh-keygen')
+@click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
+def ssh_keygen(config):
+    click.echo('ssh_keygen')
+    register_sshkey()
+
+
 @main.command('create')
 @click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
 def create(config):
-    click.echo('create')
+    click.echo('create.......')
+    create_cluter()
+
 
 
 @main.command('delete')
 @click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
 def delete(config):
     click.echo('delete')
+    destroy_cluster()
 
 
 @main.command('increase')
