@@ -1,0 +1,55 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, absolute_import, print_function
+import click
+
+@click.group(chain=True)
+def main():
+    click.echo("main")
+
+
+@main.command('nodes')
+@click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
+def nodes(config):
+    click.echo('nodes')
+
+
+@main.command('scale')
+@click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
+@click.option('--node', '-n', type=str, help='NodeID on Vultr')
+@click.option('--plan', '-p', type=str, help='PlanID on Vultr')
+def scale(config, node, plan):
+    click.echo('scale')
+
+
+@main.command('create')
+@click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
+def create(config):
+    click.echo('create')
+
+
+@main.command('delete')
+@click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
+def delete(config):
+    click.echo('delete')
+
+
+@main.command('increase')
+@click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
+@click.option('--replicas', '-r', type=int, help='NodeID on Vultr')
+@click.option('--plan', '-p', type=str, help='PlanID on Vultr')
+@click.option('--os', '-o', type=str, help='OSID on Vultr')
+def increase(config, replicas, plan, os):
+    click.echo('increase')
+
+
+@main.command('set')
+@click.option('--service', type=click.Choice(['dashboard', 'manager', 'worker']))
+@click.option('--node', '-n', type=str, help='NodeID on Vultr')
+def set(service, node):
+    if service == 'dashboard':
+        pass
+    elif service == 'manager':
+        pass
+    elif service == 'worker':
+        pass
+    click.echo(service)
