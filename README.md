@@ -69,7 +69,14 @@ the worker nodes shoud join to master node with ths suggested command from the l
     192.168.99.100:2377
   ```
 
+### Tips for nodes
 
+  * Is posible that node are not be in your correct timezone, Fix them with this:
+  `sudo timedatectl set-timezone <YOUR_TIME_ZONE> # e.g. America/La_Paz`
+
+## TODOS
+  * **scale** command for increase/decrease plan (mem/CPU) of a especific node
+  * **increase** command for add more nodes to cluster.
 
 
 

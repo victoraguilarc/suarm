@@ -79,7 +79,6 @@ def destroy_cluster():
     if exist_cluster():
         destroy = input("Destroy Cluster, Are you sure? (y/N) : ")
         if destroy == 'y' or destroy == 'Y':
-
             destroy_sshkey()
             success = True
             for node in settings["cluster"]:
