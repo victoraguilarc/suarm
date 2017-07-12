@@ -1,6 +1,6 @@
 # ArmCLI
 
-Tools for Docker swarm deployment in Vultr servers over CoreOS
+Tools for deploy a cheap Docker Swarm cluster in https://vultr.com servers over CoreOS
 
 ## Create Cluster
   - Install build essential tools with `sudo apt install build-essential`
