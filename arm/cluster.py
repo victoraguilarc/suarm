@@ -45,7 +45,7 @@ settings = config(CONFIG_FILE)
 headers = get_headers(settings)
 
 
-def create_server(zone, plan, os, label):
+def create_server(zone, plan, os, label, is_lb=False):
     """
     DCID =  Availibility region
     VPSPLANID = VPS Plan (Mem/CPU)
@@ -55,11 +55,15 @@ def create_server(zone, plan, os, label):
     payload = {'DCID': zone, 'VPSPLANID': plan, 'OSID': os, 'label': label, 'host': label, 'SSHKEYID': settings["ssh-key"]}
     req = requests.post(API_ENDPOINT + CREATE_SERVER, data=payload, headers=headers)
     if req.status_code == 200:
-        settings["cluster"].append(req.json())
-        replace_config_key("cluster", settings["cluster"])
-        click.echo("\n--> Server created..." + req.text)
+        if is_lb:
+            settings["loadbalancer"] = req.json()
+            replace_config_key("loadbalancer", settings["loadbalancer"])
+            click.echo("\n--> Load Balancer created..." + req.text)
+        else:
+            settings["cluster"].append(req.json())
+            replace_config_key("cluster", settings["cluster"])
+            click.echo("\n--> Server created..." + req.text)
     else:
-
         click.echo("\n--> Couldn't create server, don't forget register a SSH Key")
 
 
@@ -96,7 +100,7 @@ def destroy_cluster():
 
 
 
-def create_cluter():
+def create_cluster():
     if exist_cluster():
         create = input("You have a Cluster, Are your sure to create one more? (y/N) : ")
         if create != 'y' and create != 'Y':
@@ -181,3 +185,16 @@ def destroy_sshkey():
             click.echo("\n--> SSH Key Destroyed...")
     else:
         click.echo("\n--> Invalid SSH key")
+
+def add_loadbalancer():
+    DEFAULT_LB_PLAN = 201 # 1GB RAM / 1CPU
+    DEFAULT_LB_OS = 215 # ubuntu 16.04
+    if exist_cluster():
+        if not "loadbalancer" in settings:
+            settings["loadbalancer"] = dict()
+
+        create_server(["zone"], DEFAULT_LB_PLAN,
+            DEFAULT_LB_OS, "%s-lb" % settings["label"], is_lb=True)
+
+    else:
+        click.echo("You need a clouster first")

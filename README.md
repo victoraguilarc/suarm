@@ -74,6 +74,49 @@ the worker nodes shoud join to master node with ths suggested command from the l
   * Is posible that node are not be in your correct timezone, Fix them with this:
   `sudo timedatectl set-timezone <YOUR_TIME_ZONE> # e.g. America/La_Paz`
 
+
+## Set UI Dashboard for the cluster
+
+One the best dashboards for docker swarm is https://portainer.io/.
+By default portainer save the data en `/data` folder and this is cleared when docker is killed/stop or restarted.
+we need persist the **portainer** data with these steps.
+  - Create folder for volumens in the MASTER NODE with `mkdir -p /volumes/portainer/data`
+  - Create a network for portainer `docker network create -d overlay portainer`
+  - Start portainer with our new volume:
+  ```
+  docker service create \
+    --name portainer \
+    --publish 80:9000 \
+    --constraint 'node.role == manager' \
+    --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+    --mount type=bind,src=/volumes/portainer/data,dst=/data \
+    --network portainer \
+    --detach=false \
+    portainer/portainer \
+    -H unix:///var/run/docker.sock
+  ```
+  - Other alternative to portainer is docker swarm visualizer, for run it try:
+  ```
+  docker service create \
+  --name=viz \
+  --publish=8080:8080/tcp \
+  --constraint=node.role==manager \
+  --detach=false \
+  --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+  dockersamples/visualizer
+  ```
+
+  docker service create \
+  --name=nginx-proxy \
+  --publish=80:80/tcp \
+  --constraint=node.role==manager \
+  --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+  jwilder/nginx-proxy
+
+
+
+ docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+
 ## TODOS
   * **scale** command for increase/decrease plan (mem/CPU) of a especific node
   * **increase** command for add more nodes to cluster.

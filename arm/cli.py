@@ -34,7 +34,7 @@ def ssh_keygen(config):
 @click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
 def create(config):
     click.echo('create.......')
-    create_cluter()
+    create_cluster()
 
 
 
@@ -65,3 +65,9 @@ def set(service, node):
     elif service == 'worker':
         pass
     click.echo(service)
+
+
+@main.command('addlb')
+@click.option('--config', '-f', type=click.Path(), help='Add load balancer')
+def addlb(config):
+    click.echo('adding Load balancer')
