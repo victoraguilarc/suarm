@@ -8,18 +8,27 @@ def main():
     click.echo("Starting...")
 
 
-@main.command('nodes')
+@main.command('node')
 @click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
-def nodes(config):
-    click.echo('nodes')
-
-
-@main.command('scale')
-@click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
-@click.option('--node', '-n', type=str, help='NodeID on Vultr')
-@click.option('--plan', '-p', type=str, help='PlanID on Vultr')
-def scale(config, node, plan):
-    click.echo('scale')
+@click.option('--resize', '-r', is_flag=True, help='Upgrade plan of a node')
+@click.option('--delete', '-d', is_flag=True, help='Delete a node')
+@click.option('--plan', '-p', type=int, default=None, help='PlanID of the node')
+@click.option('--subid', '-s', type=str, default=None, help='SubID of the node')
+def node(config, resize, delete, plan, subid):
+    if resize:
+        click.echo('-- ON Resize...')
+        if plan and subid:
+            resize_server(subid, plan)
+        else:
+            click.echo('We need PlanID and SUBID of the node')
+    elif delete:
+        click.echo('-- ON Delete...')
+        if subid:
+            destroy_server(subid)
+        else:
+            click.echo('We need SUBID of the node')
+    else:
+        click.echo(settings["cluster"])
 
 
 @main.command('ssh-keygen')
@@ -45,15 +54,6 @@ def swarm(config, create, delete, add_node):
         click.echo(settings)
 
 
-@main.command('increase')
-@click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
-@click.option('--replicas', '-r', type=int, help='NodeID on Vultr')
-@click.option('--plan', '-p', type=str, help='PlanID on Vultr')
-@click.option('--os', '-o', type=str, help='OSID on Vultr')
-def increase(config, replicas, plan, os):
-    click.echo('increase')
-
-
 @main.command('set')
 @click.option('--service', type=click.Choice(['dashboard', 'manager', 'worker']))
 @click.option('--node', '-n', type=str, help='NodeID on Vultr')
@@ -69,9 +69,9 @@ def set(service, node):
 
 @main.command('loadbalancer')
 @click.option('--config', '-f', type=click.Path(), help='Add load balancer')
-@click.option('--create', is_flag=True, help='Delete or not')
-@click.option('--delete', is_flag=True, help='Delete or not')
-@click.option('--setup', is_flag=True, help='HTTPS support')
+@click.option('--create', '-c', is_flag=True, help='Delete or not')
+@click.option('--delete', '-d', is_flag=True, help='Delete or not')
+@click.option('--setup', '-s', is_flag=True, help='HTTPS support')
 def loadbalancer(config, create, delete, setup):
     click.echo('--> Load balancer...')
     if create:
@@ -88,7 +88,6 @@ def loadbalancer(config, create, delete, setup):
 @click.option('--delete', '-d', is_flag=True, help='Delete Option')
 def app(config, create, delete):
     click.echo('--> Load balancer...')
-
     if create:
         click.echo('--> CREATE')
     elif delete:

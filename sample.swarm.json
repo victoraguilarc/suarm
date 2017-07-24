@@ -17,15 +17,9 @@
     "cluster": [],
     "apps": [
         {
-            "name": "app1",
-            "domain": "app1.xiberty.com",
+            "name": "app",
+            "domain": "app.xiberty.com",
             "port": "8000",
-            "https": false
-        },
-        {
-            "name": "app2",
-            "domain": "app2.xiberty.com",
-            "port": "8001",
             "https": false
         }
     ]

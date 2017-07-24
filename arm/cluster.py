@@ -11,8 +11,11 @@ from fabric.tasks import execute
 from .tasks import Server
 
 API_ENDPOINT = "https://api.vultr.com"
+
 CREATE_SERVER = "/v1/server/create"
 DESTROY_SERVER = "/v1/server/destroy"
+UPGRADE_SERVER = "/v1/server/upgrade_plan"
+
 CREATE_SSHKEY = "/v1/sshkey/create"
 DESTROY_SSHKEY = "/v1/sshkey/destroy"
 NODE_IPV4 = "/v1/server/list_ipv4"
@@ -61,7 +64,7 @@ def register_ip(subid):
         ips = req.json()[subid]
         for ip in ips:
             if ip["type"] == "main_ip":
-                click.echo("--> IP: " + ip["ip"] + " Registered...")
+                click.echo("--> IP: " + ip["ip"] + " ...  OK.")
                 return ip["ip"]
     else:
         click.echo(req.text)
@@ -79,7 +82,13 @@ def create_server(zone, plan, oss, label, is_lb=False):
     OSID = Operative System
     """
 
-    payload = {'DCID': zone, 'VPSPLANID': plan, 'OSID': oss, 'label': label, 'host': label,
+    _nro = len(settings["cluster"])
+    if _nro < 10:
+        _label = "%s0%s" % (label, _nro)
+    else:
+        _label = "%s%s" % (label, _nro)
+
+    payload = {'DCID': zone, 'VPSPLANID': plan, 'OSID': oss, 'label': _label, 'host': _label,
                'SSHKEYID': settings["ssh-key"]}
     req = requests.post(API_ENDPOINT + CREATE_SERVER, data=payload, headers=headers)
     if req.status_code == 200:
@@ -105,8 +114,25 @@ def destroy_server(subid):
     req = requests.post(API_ENDPOINT + DESTROY_SERVER, data=payload, headers=headers)
     if req.status_code == 200:
         click.echo("\n--> Server deleted!!")
+        if "cluster" in settings and len(settings["cluster"]) > 0:
+            _cluster = []
+            for node in settings["cluster"]:
+                if "SUBID" in node and node["SUBID"] != subid:
+                    _cluster.append(node)
+            save_on_config("cluster", _cluster)
     else:
         click.echo("\n--> Couldn't create server!!")
+
+
+def resize_server(subid, plan):
+    payload = {'SUBID': subid, 'VPSPLANID': plan}
+    req = requests.post(API_ENDPOINT + UPGRADE_SERVER, data=payload, headers=headers)
+
+    click.echo(req.text)
+    if req.status_code == 200:
+        click.echo("\n--> Server Upgraded!!")
+    else:
+        click.echo("\n--> Couldn't update server!!")
 
 
 def exist_cluster():
@@ -138,7 +164,7 @@ def create_servers(replicas):
     for i in range(replicas):
         create_server(
             settings["nodes"]["zone"], settings["nodes"]["plan"],
-            settings["nodes"]["os"], "%s0%s" % (settings["label"], i))
+            settings["nodes"]["os"], settings["label"])
         sleep(2)
 
     click.echo("\nRegistering IPs...")
@@ -190,7 +216,7 @@ def generate_key(label):
     req = requests.post(API_ENDPOINT + CREATE_SSHKEY, data=payload, headers=headers)
 
     if req.status_code == 200:
-        click.echo("\n--> SSH Key registered..." + req.text)
+        click.echo("\n--> SSH Key Registered..." + req.text)
         return req.json()["SSHKEYID"]
     return None
 

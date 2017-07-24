@@ -21,12 +21,28 @@ this file, contains the next values to configuration:
 {
     "api-key": "",
     "ssh-key": "",
-    "zone": 0,
-    "plan": 0,
-    "os": 0,
-    "label": "swarm",
-    "replicas": 0,
-    "cluster": []
+    "label": "",
+    "domain": "cluster.xiberty.com",
+    "nodes": {
+        "replicas": 2,
+        "zone": 12,
+        "plan": 201,
+        "os": 179
+    },
+    "loadbalancer": {
+        "zone": 12,
+        "plan": 201,
+        "os": 215,
+    },
+    "cluster": [],
+    "apps": [
+        {
+            "name": "app",
+            "domain": "app.xiberty.com",
+            "port": "8000",
+            "https": false
+        }
+    ]
 }
 ```
 Then
