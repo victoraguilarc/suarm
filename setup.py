@@ -4,7 +4,12 @@ import sys
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 
-requires = ['click']
+requires = [
+    'click==6.7',
+    'requests==2.18.1',
+    'Fabric3==1.13.1.post1',
+    'Jinja2==2.9.6'
+]
 tests_require = ['pytest', 'pytest-cache', 'pytest-cov']
 
 

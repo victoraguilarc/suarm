@@ -2,6 +2,11 @@
 
 Tools for deploy a cheap Docker Swarm cluster in https://vultr.com servers over CoreOS
 
+
+### Instalation
+
+`[sudo] pip install git+https://github.com/vicobits/ArmCLI.git`
+
 ## Create Cluster
   - Install build essential tools with `sudo apt install build-essential`
   - Prepare environment with `make env`
@@ -134,17 +139,10 @@ we need persist the **portainer** data with these steps.
  docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
 
 ## TODOS
-  * **scale** command for increase/decrease plan (mem/CPU) of a especific node
-  * **increase** command for add more nodes to cluster.
-
-
-
-
-
-
-
-
-
+  * **master/slave** automate docker swarm mode in the cluster
+  * **manage domains** add doman to the cluster and manage app domains with Cloudflare 
+  * **deploy app** app deployment with docker-compose
+  
 License
 -------
 
