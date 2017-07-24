@@ -74,6 +74,8 @@ the worker nodes shoud join to master node with ths suggested command from the l
   * Is posible that node are not be in your correct timezone, Fix them with this:
   `sudo timedatectl set-timezone <YOUR_TIME_ZONE> # e.g. America/La_Paz`
 
+  * Change release channer in CoreOS
+  `vim /etc/coreos/update.conf` The content will be `GROUP=alpha`
 
 ## Set UI Dashboard for the cluster
 
@@ -91,7 +93,6 @@ we need persist the **portainer** data with these steps.
     --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
     --mount type=bind,src=/volumes/portainer/data,dst=/data \
     --network portainer \
-    --detach=false \
     portainer/portainer \
     -H unix:///var/run/docker.sock
   ```
@@ -101,7 +102,6 @@ we need persist the **portainer** data with these steps.
   --name=viz \
   --publish=8080:8080/tcp \
   --constraint=node.role==manager \
-  --detach=false \
   --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
   dockersamples/visualizer
   ```

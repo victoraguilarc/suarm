@@ -1,7 +1,8 @@
 {
-    "api-key": "OHJTUKSYTAT47R7YSABMEREJHWJJ5JRFEVXA",
-    "ssh-key": "597268ba1845b",
-    "label": "swarm",
+    "api-key": "",
+    "ssh-key": "",
+    "label": "",
+    "domain": "cluster.xiberty.com",
     "nodes": {
         "replicas": 2,
         "zone": 12,
@@ -9,21 +10,11 @@
         "os": 179
     },
     "loadbalancer": {
-        "SUBID": "9623606",
         "zone": 12,
         "plan": 201,
-        "os": 215
+        "os": 215,
     },
-    "cluster": [
-        {
-            "SUBID": "9623474",
-            "ipv4": "45.63.90.111"
-        },
-        {
-            "SUBID": "9623475",
-            "ipv4": "0.0.0.0"
-        }
-    ],
+    "cluster": [],
     "apps": [
         {
             "name": "app1",
@@ -38,5 +29,4 @@
             "https": false
         }
     ]
-
 }

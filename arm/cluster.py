@@ -6,6 +6,10 @@ import requests, json, sys, os, click
 import os.path
 from time import sleep
 
+from fabric.state import env
+from fabric.tasks import execute
+from .tasks import Server
+
 API_ENDPOINT = "https://api.vultr.com"
 CREATE_SERVER = "/v1/server/create"
 DESTROY_SERVER = "/v1/server/destroy"
@@ -14,11 +18,11 @@ DESTROY_SSHKEY = "/v1/sshkey/destroy"
 NODE_IPV4 = "/v1/server/list_ipv4"
 
 CONFIG_FILE = "./swarm.json"
-CACHE_FILE = "./cluster.lst"
-
+SLEEP_TIME = 15
 
 # SETTINGS
 # --------------------
+
 
 def config(cfile):
     os.system("ls")
@@ -125,8 +129,28 @@ def destroy_cluster():
                     success = False
             if success:
                 save_on_config("cluster", list())
+                destroy_loadbalancer()
     else:
         click.echo("\n--> Doesn't exist a cluster created by this script...!!! \n")
+
+
+def create_servers(replicas):
+    for i in range(replicas):
+        create_server(
+            settings["nodes"]["zone"], settings["nodes"]["plan"],
+            settings["nodes"]["os"], "%s0%s" % (settings["label"], i))
+        sleep(2)
+
+    click.echo("\nRegistering IPs...")
+
+    sleep(SLEEP_TIME)
+    for node in settings["cluster"]:
+        node["ipv4"] = register_ip(node["SUBID"])
+        save_on_config("cluster", settings["cluster"])
+
+    if "nodes" in settings and "replicas" in settings["nodes"]:
+        settings["nodes"]["replicas"] = len(settings["cluster"])
+        save_on_config("nodes", settings["nodes"])
 
 
 def create_cluster():
@@ -143,20 +167,12 @@ def create_cluster():
         save_on_config("cluster", list())
 
     if len(settings["ssh-key"]) > 0:
+
         if isinstance(settings["nodes"]["replicas"], int):
-            for i in range(settings["nodes"]["replicas"]):
-                create_server(
-                    settings["nodes"]["zone"], settings["nodes"]["plan"],
-                    settings["nodes"]["os"], "%s0%s" % (settings["label"], i))
 
-            click.echo("\nRegistering IPs...")
-            sleep(10)
-            if exist_cluster():
-                for node in settings["cluster"]:
-                    node["ipv4"] = register_ip(node["SUBID"])
-                    save_on_config("cluster", settings["cluster"])
-
+            create_servers(settings["nodes"]["replicas"])
             add_loadbalancer()
+
             click.echo("\n\n-----------------------------------------------------------------------------------'")
             click.echo("Cluster created, don't forget save ssh keys, its are in './keys'")
             click.echo("-----------------------------------------------------------------------------------'")
@@ -243,8 +259,40 @@ def add_loadbalancer(plan=201, oss=215, zone=12):
 
         create_server(zone=zone, plan=plan, oss=oss, label="%s-lb" % settings["label"], is_lb=True)
         if "SUBID" in settings["loadbalancer"]:
-            sleep(10)
+            sleep(SLEEP_TIME)
             settings["loadbalancer"]["ipv4"] = register_ip(settings["loadbalancer"]["SUBID"])
             save_on_config("loadbalancer", settings["loadbalancer"])
     else:
         click.echo("You need a clouster first")
+
+
+def config_env():
+    env.user = 'root'
+    env.key_filename = 'keys/%s_rsa' % settings["label"]
+    env.apps = settings["apps"]
+    env.cluster = settings["cluster"]
+
+
+def setup_loadbalancer():
+    if "loadbalancer" in settings and "ipv4" in settings["loadbalancer"]:
+        config_env()
+        execute(Server.install, hosts=[settings["loadbalancer"]["ipv4"]])
+        execute(Server.haproxy, hosts=[settings["loadbalancer"]["ipv4"]])
+
+
+def destroy_loadbalancer():
+    if "loadbalancer" in settings and "SUBID" in settings["loadbalancer"]:
+        payload = {'SUBID': settings["loadbalancer"]["SUBID"]}
+        req = requests.post(API_ENDPOINT + DESTROY_SERVER, data=payload, headers=headers)
+        if req.status_code == 200:
+            settings["loadbalancer"] = {
+                "zone": 12,
+                "plan": 201,
+                "os": 215,
+            }
+            save_on_config("loadbalancer", settings["loadbalancer"])
+            click.echo("\n--> Server deleted!!")
+        else:
+            click.echo("\n--> Couldn't create server!!")
+    else:
+        click.echo("\n--> Load Balancer improperly configured!!")

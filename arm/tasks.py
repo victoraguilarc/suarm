@@ -2,31 +2,22 @@ from __future__ import unicode_literals
 
 from fabric.context_managers import lcd, cd
 from fabric.contrib.files import exists, upload_template
-from fabric.operations import sudo
+from fabric.operations import sudo, run
 from fabric.state import env
 
-USERNAME = "vic"
-PASSWORD = "haproxy"
-HOST = " 45.63.109.149"
 
 class Server(object):
 
     @staticmethod
-    def config():
-        env.hosts = [HOST]
-        env.user = 'root'
-        env.key_filename = 'keys/swarm_rsa'
-
-        print(env)
-
-    @staticmethod
-    def prepare():
+    def install():
         """
         Install all server dependencies.
         """
-        sudo('apt-get update')
-        sudo('apt-get upgrade -y')
-        sudo('apt-get install -y haproxy')
+        print("\nPreparing...\n")
+        if not exists('/etc/haproxy'):
+            sudo('apt-get update')
+            sudo('apt-get upgrade -y')
+            sudo('apt-get install -y haproxy')
 
     @staticmethod
     def haproxy():
@@ -41,14 +32,14 @@ class Server(object):
             sudo('rm /etc/haproxy/haproxy.cfg')
 
         # Main domain configuration
-        with lcd("./tmpl"):
+        with lcd("tmpl"):
             with cd('/etc/haproxy/'):
                 upload_template(
-                    filename="./haproxy.cfg",
+                    filename="haproxy.cfg",
                     destination='/etc/haproxy/haproxy.cfg',
                     template_dir="./",
                     context={
-                        "admin": {"username": USERNAME, "password": PASSWORD},
+                        "admin": {"username": "admin", "password": "1029384756"},
                         "apps": env.apps,
                         "cluster": env.cluster
                     },

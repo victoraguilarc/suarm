@@ -2,8 +2,9 @@ tox
 pytest
 pytest-cache
 rstcheck
-click
+click==6.7
 
 requests==2.18.1
-fabric3
+Fabric3==1.13.1.post1
 ipdb==0.10.3
+Jinja2==2.9.6

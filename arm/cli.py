@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-import click
 from .cluster import *
-from fabric.tasks import execute
-from .tasks import Server, HOST
+
 
 @click.group(chain=True)
 def main():
-    click.echo("main")
+    click.echo("Starting...")
 
 
 @main.command('nodes')
@@ -31,18 +29,20 @@ def ssh_keygen(config):
     register_sshkey()
 
 
-@main.command('create')
+@main.command('swarm')
 @click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
-def create(config):
-    click.echo('create.......')
-    create_cluster()
-
-
-@main.command('delete')
-@click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
-def delete(config):
-    click.echo('delete')
-    destroy_cluster()
+@click.option('--create', '-c', is_flag=True, help='Create option')
+@click.option('--delete', '-d', is_flag=True, help='Delete Option')
+@click.option('--add-node', '-a', type=int, default=None, help='Delete Option')
+def swarm(config, create, delete, add_node):
+    if create:
+        create_cluster()
+    elif delete:
+        destroy_cluster()
+    elif add_node:
+        create_servers(add_node)
+    else:
+        click.echo(settings)
 
 
 @main.command('increase')
@@ -69,10 +69,31 @@ def set(service, node):
 
 @main.command('loadbalancer')
 @click.option('--config', '-f', type=click.Path(), help='Add load balancer')
-@click.option('--zone', '-z', type=int, default=12, help='ZoneID on Vultr')
-@click.option('--plan', '-p', type=int, default=201, help='PlanID on Vultr')
-@click.option('--oss', '-o', type=int, default=215, help='OSID on Vultr')
-def addlb(config, zone, plan, oss):
-    click.echo('--> Adding Load balancer...')
-    add_loadbalancer(zone=zone, plan=plan, oss=oss)
+@click.option('--create', is_flag=True, help='Delete or not')
+@click.option('--delete', is_flag=True, help='Delete or not')
+@click.option('--setup', is_flag=True, help='HTTPS support')
+def loadbalancer(config, create, delete, setup):
+    click.echo('--> Load balancer...')
+    if create:
+        add_loadbalancer()
+    elif setup:
+        setup_loadbalancer()
+    elif delete:
+        destroy_loadbalancer()
+
+
+@main.command('app')
+@click.option('--config', '-f', type=click.Path(), help='Add load balancer')
+@click.option('--create', '-c', is_flag=True, help='Create option')
+@click.option('--delete', '-d', is_flag=True, help='Delete Option')
+def app(config, create, delete):
+    click.echo('--> Load balancer...')
+
+    if create:
+        click.echo('--> CREATE')
+    elif delete:
+        click.echo('--> DELETE')
+
+
+
 
