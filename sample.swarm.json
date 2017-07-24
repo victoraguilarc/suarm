@@ -1,16 +1,42 @@
 {
-    "api-key": "",
-    "ssh-key": "",
-    "zone": 0,
-    "plan": 0,
-    "os": 0,
-    "label": "",
-    "replicas": 3,
+    "api-key": "OHJTUKSYTAT47R7YSABMEREJHWJJ5JRFEVXA",
+    "ssh-key": "597268ba1845b",
+    "label": "swarm",
+    "nodes": {
+        "replicas": 2,
+        "zone": 12,
+        "plan": 201,
+        "os": 179
+    },
+    "loadbalancer": {
+        "SUBID": "9623606",
+        "zone": 12,
+        "plan": 201,
+        "os": 215
+    },
     "cluster": [
-      {
-        "id": "",
-        "plan": "",
-        "ip": "10.0.0.1"
-      }
+        {
+            "SUBID": "9623474",
+            "ipv4": "45.63.90.111"
+        },
+        {
+            "SUBID": "9623475",
+            "ipv4": "0.0.0.0"
+        }
+    ],
+    "apps": [
+        {
+            "name": "app1",
+            "domain": "app1.xiberty.com",
+            "port": "8000",
+            "https": false
+        },
+        {
+            "name": "app2",
+            "domain": "app2.xiberty.com",
+            "port": "8001",
+            "https": false
+        }
     ]
+
 }

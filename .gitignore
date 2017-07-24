@@ -5,6 +5,7 @@
 
 .cache/
 .tox/
+.idea/
 
 htmlcov/
 *.egg-info/

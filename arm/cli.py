@@ -2,7 +2,8 @@
 from __future__ import unicode_literals, absolute_import, print_function
 import click
 from .cluster import *
-
+from fabric.tasks import execute
+from .tasks import Server, HOST
 
 @click.group(chain=True)
 def main():
@@ -37,7 +38,6 @@ def create(config):
     create_cluster()
 
 
-
 @main.command('delete')
 @click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
 def delete(config):
@@ -67,7 +67,12 @@ def set(service, node):
     click.echo(service)
 
 
-@main.command('addlb')
+@main.command('loadbalancer')
 @click.option('--config', '-f', type=click.Path(), help='Add load balancer')
-def addlb(config):
-    click.echo('adding Load balancer')
+@click.option('--zone', '-z', type=int, default=12, help='ZoneID on Vultr')
+@click.option('--plan', '-p', type=int, default=201, help='PlanID on Vultr')
+@click.option('--oss', '-o', type=int, default=215, help='OSID on Vultr')
+def addlb(config, zone, plan, oss):
+    click.echo('--> Adding Load balancer...')
+    add_loadbalancer(zone=zone, plan=plan, oss=oss)
+

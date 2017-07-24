@@ -25,7 +25,7 @@ setup(
     name="ArmCLI",
     version='0.0.0',
     description="CLI tools dor docker swarm deployment",
-    long_description="\n\n".join([open("README.rst").read()]),
+    long_description="\n\n".join([open("README.md").read()]),
     license='MIT',
     author="Victor Aguilar C.",
     author_email="victor@xiberty.com",

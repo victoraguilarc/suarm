@@ -1,4 +1,3 @@
-
 """
 Script to create and configure a docker swarm cluster over CoreOS in https://www.vultr.com/
 """
@@ -17,15 +16,24 @@ NODE_IPV4 = "/v1/server/list_ipv4"
 CONFIG_FILE = "./swarm.json"
 CACHE_FILE = "./cluster.lst"
 
-# settingsURATION
+
+# SETTINGS
 # --------------------
+
 def config(cfile):
     os.system("ls")
     try:
         config_file = open(cfile, 'r')
         settings = json.load(config_file)
-        if "api-key" in settings and "ssh-key" in settings and "zone" in settings and "plan" in settings and \
-           "os" in settings and "label" in settings and "replicas" in settings:
+        if "api-key" in settings and \
+           "ssh-key" in settings and \
+           "nodes" in settings and \
+           "label" in settings and \
+           "zone" in settings["nodes"] and \
+           "plan" in settings["nodes"] and \
+           "os" in settings["nodes"] and \
+           "replicas" in settings["nodes"]:
+
             click.echo("\n--> Valid config file...")
             return settings
         else:
@@ -36,34 +44,55 @@ def config(cfile):
         click.echo('swarm.json VALID file is required!')
         return None
 
+
 def get_headers(settings):
     if "api-key" in settings:
         return {"API-Key": settings["api-key"]}
     return None
 
+
+def register_ip(subid):
+    req = requests.get(API_ENDPOINT + NODE_IPV4, params={"SUBID": subid}, headers=headers)
+    if req.status_code == 200:
+        ips = req.json()[subid]
+        for ip in ips:
+            if ip["type"] == "main_ip":
+                click.echo("--> IP: " + ip["ip"] + " Registered...")
+                return ip["ip"]
+    else:
+        click.echo(req.text)
+        return None
+
+
 settings = config(CONFIG_FILE)
 headers = get_headers(settings)
 
 
-def create_server(zone, plan, os, label, is_lb=False):
+def create_server(zone, plan, oss, label, is_lb=False):
     """
     DCID =  Availibility region
     VPSPLANID = VPS Plan (Mem/CPU)
     OSID = Operative System
     """
 
-    payload = {'DCID': zone, 'VPSPLANID': plan, 'OSID': os, 'label': label, 'host': label, 'SSHKEYID': settings["ssh-key"]}
+    payload = {'DCID': zone, 'VPSPLANID': plan, 'OSID': oss, 'label': label, 'host': label,
+               'SSHKEYID': settings["ssh-key"]}
     req = requests.post(API_ENDPOINT + CREATE_SERVER, data=payload, headers=headers)
     if req.status_code == 200:
         if is_lb:
             settings["loadbalancer"] = req.json()
-            replace_config_key("loadbalancer", settings["loadbalancer"])
-            click.echo("\n--> Load Balancer created..." + req.text)
+            settings["loadbalancer"]["zone"] = zone
+            settings["loadbalancer"]["plan"] = plan
+            settings["loadbalancer"]["os"] = oss
+
+            save_on_config("loadbalancer", settings["loadbalancer"])
+            click.echo("\n--> Load Balancer created... \n" + req.text)
         else:
             settings["cluster"].append(req.json())
-            replace_config_key("cluster", settings["cluster"])
-            click.echo("\n--> Server created..." + req.text)
+            save_on_config("cluster", settings["cluster"])
+            click.echo("--> Server created..." + req.text)
     else:
+        click.echo("\nERROR >> " + req.text)
         click.echo("\n--> Couldn't create server, don't forget register a SSH Key")
 
 
@@ -75,9 +104,10 @@ def destroy_server(subid):
     else:
         click.echo("\n--> Couldn't create server!!")
 
+
 def exist_cluster():
-    return ("cluster" in settings and isinstance(settings["cluster"], list) \
-        and len(settings["cluster"]) > 0)
+    return "cluster" in settings and isinstance(settings["cluster"], list) and len(settings["cluster"]) > 0
+
 
 def destroy_cluster():
     if exist_cluster():
@@ -91,54 +121,48 @@ def destroy_cluster():
                     subid = int(node["SUBID"])
                     destroy_server(subid)
                 except Exception as e:
-                    click.echo("Invalid SUBID: [" + subid + "] on deleting...")
+                    click.echo("Invalid SUBID: on deleting...")
                     success = False
             if success:
-                replace_config_key("cluster", list())
+                save_on_config("cluster", list())
     else:
         click.echo("\n--> Doesn't exist a cluster created by this script...!!! \n")
 
 
-
 def create_cluster():
     if exist_cluster():
-        create = input("You have a Cluster, Are your sure to create one more? (y/N) : ")
-        if create != 'y' and create != 'Y':
+        create = input("You have a Cluster, Do you want to reset it? [Yes/No/Cancel](Y/N/C) : ")
+        if create == 'c' or create == 'C':
             click.echo("\n----> You are wise!")
             return None
+        elif create == 'y' or create == 'Y':
+            settings["cluster"] = []
+            save_on_config("cluster", list())
     else:
         settings["cluster"] = []
-        replace_config_key("cluster", list())
+        save_on_config("cluster", list())
 
     if len(settings["ssh-key"]) > 0:
-        if isinstance(settings["replicas"], int):
-            for i in range(settings["replicas"]):
+        if isinstance(settings["nodes"]["replicas"], int):
+            for i in range(settings["nodes"]["replicas"]):
                 create_server(
-                    settings["zone"], settings["plan"],
-                    settings["os"], "%s0%s" % (settings["label"], i))
+                    settings["nodes"]["zone"], settings["nodes"]["plan"],
+                    settings["nodes"]["os"], "%s0%s" % (settings["label"], i))
 
-            sleep(5)
-            click.echo("Registering IPs...")
+            click.echo("\nRegistering IPs...")
+            sleep(10)
             if exist_cluster():
                 for node in settings["cluster"]:
+                    node["ipv4"] = register_ip(node["SUBID"])
+                    save_on_config("cluster", settings["cluster"])
 
-                    req = requests.get(API_ENDPOINT + NODE_IPV4, params={"SUBID": node["SUBID"]}, headers=headers)
-                    if req.status_code == 200:
-                        ips = req.json()[node["SUBID"]]
-                        for ip in ips:
-                            if ip["type"] == "main_ip":
-                                node["ipv4"] = ip["ip"]
-                                replace_config_key("cluster", settings["cluster"])
-                    else:
-                        click.echo(req.text)
-                    #
-                    # v1/server/list_ipv4?SUBID=9470440
-
-            click.echo("\n-----------------------------------------------------------------------------------'")
-            click.echo("\n Cluster created, don't forget save ssh keys, its are in './keys'")
-            click.echo("\n-----------------------------------------------------------------------------------'")
+            add_loadbalancer()
+            click.echo("\n\n-----------------------------------------------------------------------------------'")
+            click.echo("Cluster created, don't forget save ssh keys, its are in './keys'")
+            click.echo("-----------------------------------------------------------------------------------'")
     else:
         click.echo("\n--> Would be register a SSH Key first with: 'make cluster_keygen'")
+
 
 def generate_key(label):
     os.system("ssh-keygen -t rsa -b 4096 -C '%(label)s cluster' -f ./keys/%(label)s_rsa -N ''" % {"label": label})
@@ -154,7 +178,8 @@ def generate_key(label):
         return req.json()["SSHKEYID"]
     return None
 
-def replace_config_key(key, value):
+
+def save_on_config(key, value):
     with open(CONFIG_FILE, 'r') as f:
         data = json.load(f)
         data[key] = value
@@ -163,12 +188,14 @@ def replace_config_key(key, value):
     with open(CONFIG_FILE, 'w') as f:
         json.dump(data, f, indent=4)
 
+
 def register_sshkey():
     sshkeyid = generate_key(settings["label"])
     if sshkeyid:
-        replace_config_key("ssh-key", sshkeyid)
+        save_on_config("ssh-key", sshkeyid)
     else:
         click.echo("\n--> Invalid or Deleted SSH key")
+
 
 def destroy_sshkey():
     sshkeyid = settings["ssh-key"]
@@ -176,7 +203,7 @@ def destroy_sshkey():
         payload = {'SSHKEYID': sshkeyid}
         req = requests.post(API_ENDPOINT + DESTROY_SSHKEY, data=payload, headers=headers)
         if req.status_code == 200:
-            replace_config_key("ssh-key", "")
+            save_on_config("ssh-key", "")
             try:
                 os.remove("./keys/%s_rsa" % settings["label"])
                 os.remove("./keys/%s_rsa.pub" % settings["label"])
@@ -186,15 +213,38 @@ def destroy_sshkey():
     else:
         click.echo("\n--> Invalid SSH key")
 
-def add_loadbalancer():
-    DEFAULT_LB_PLAN = 201 # 1GB RAM / 1CPU
-    DEFAULT_LB_OS = 215 # ubuntu 16.04
+
+def add_loadbalancer(plan=201, oss=215, zone=12):
+    """
+        plan = 1GB RAM / 1CPU
+        os = ubuntu 16.04
+    """
+
     if exist_cluster():
-        if not "loadbalancer" in settings:
+        if "loadbalancer" in settings:
+            if "SUBID" in settings["loadbalancer"] and "ipv4" in settings["loadbalancer"]:
+                create = input("Are your sure to (re)create this? (y/N) : ")
+                if create != 'y' and create != 'Y':
+                    click.echo("\n----> You are wise!")
+                    return None
+
+            if "zone" in settings["loadbalancer"]:
+                zone = settings["loadbalancer"]["zone"]
+
+            if "plan" in settings["loadbalancer"]:
+                plan = settings["loadbalancer"]["plan"]
+
+            if "os" in settings["loadbalancer"]:
+                oss = settings["loadbalancer"]["os"]
+
+        else:
             settings["loadbalancer"] = dict()
+            zone = settings["zone"]
 
-        create_server(["zone"], DEFAULT_LB_PLAN,
-            DEFAULT_LB_OS, "%s-lb" % settings["label"], is_lb=True)
-
+        create_server(zone=zone, plan=plan, oss=oss, label="%s-lb" % settings["label"], is_lb=True)
+        if "SUBID" in settings["loadbalancer"]:
+            sleep(10)
+            settings["loadbalancer"]["ipv4"] = register_ip(settings["loadbalancer"]["SUBID"])
+            save_on_config("loadbalancer", settings["loadbalancer"])
     else:
         click.echo("You need a clouster first")

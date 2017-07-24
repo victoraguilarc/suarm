@@ -5,5 +5,5 @@ rstcheck
 click
 
 requests==2.18.1
-fabric==1.13.2
+fabric3
 ipdb==0.10.3
