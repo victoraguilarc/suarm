@@ -28,7 +28,7 @@ class PyTest(TestCommand):
 
 setup(
     name="ArmCLI",
-    version='0.0.0',
+    version='0.0.1',
     description="CLI tools dor docker swarm deployment",
     long_description="\n\n".join([open("README.md").read()]),
     license='MIT',
