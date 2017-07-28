@@ -1,26 +1,32 @@
-# ArmCLI
+# suarm
 
 Tools for deploy a cheap Docker Swarm cluster in https://vultr.com servers over CoreOS
+With a loadbalancer
 
-
-### Instalation
+## Instalation
 
 `[sudo] pip install git+https://github.com/vicobits/ArmCLI.git`
 
-## Create Cluster
+### development
   - Install build essential tools with `sudo apt install build-essential`
   - Prepare environment with `make env`
   - Configure  `swarm.json` file.
-  - Register a ssh key with `arm ssh-keygen`
-  - Launch a cluster with `arm create` or `arm -f config_file create`
+  - Edit files
+
+## Usage
+  - Add `api-key` to `swarm.json` from value generated in [API Section](https://my.vultr.com/settings/#settingsapi) in
+    your [Vultr](https://vultr.com) account.
+  - Add some `ssh-key` to  `swarm.json` from your account registered ssh-keys. If you don't have one you can
+    create one with `suarm keys --create` and register it with `suarm keys`
+  - Create a cluster with `suarm cluster --create` or `suarm -f config_file cluster --create`
 
 ## Destroy Cluster
-  - Destroy cluster with `arm delete` or `arm -f config_file delete`
+  - Destroy cluster with `suarm cluster --delete` or `suarm -f config_file cluster --delete`
 
 ### Configuration file
 
-By defaul `arm` catch `swarm.json` file as configuration file in the current location
-this file, contains the next values to configuration:
+By defaul `suarm` catch `swarm.json` file as configuration file in the current location
+this file, contains the next values:
 
 ```
 {
@@ -28,16 +34,21 @@ this file, contains the next values to configuration:
     "ssh-key": "",
     "label": "",
     "domain": "cluster.xiberty.com",
-    "nodes": {
-        "replicas": 2,
-        "zone": 12,
+    "master": {
+        "zone": "SILICON_VALLEY",
         "plan": 201,
-        "os": 179
+        "os": "COREOS",
+    },
+    "workers": {
+        "replicas": 2,
+        "zone": "SILICON_VALLEY",
+        "plan": 201,
+        "os": "COREOS"
     },
     "loadbalancer": {
-        "zone": 12,
+        "zone": "SILICON_VALLEY",
         "plan": 201,
-        "os": 215,
+        "os": "UBUNTU_16_04"
     },
     "cluster": [],
     "apps": [
@@ -53,24 +64,47 @@ this file, contains the next values to configuration:
 Then
   * **api-key** is obtained from https://my.vultr.com/settings/#settingsapi
   * **ssh-key** is a code for a registered ssh key this is obtained from https://api.vultr.com/v1/sshkey/list
-  * **zone** is a availability zone obtained from https://api.vultr.com/v1/regions/list
-  * **plan** is a plan (Mem/CPU) obtained from https://api.vultr.com/v1/plans/list
-  * **os** is OS id in Vultr obtained from https://api.vultr.com/v1/os/list
+  * **master** is config for master node
+  * **loadbalancer** is config for loadbalancer node
+  * **workers** is config for workers
+  * **cluster** contains the created worker servers details.
   * **label** Is a name for cluster e.g. swarm > swarm01, swarm02 ...
-  * **replicas** is the quantity of nodes for cluster
-  * **cluster** is the description for nodes in ths cluster
+  * **replicas** is the quantity of nodes for cluster it would be greater than 0
 
-
-## Swarm configuration
-
-The docker swarm configuration needs a least a node as `manager` and at least two nodes as `workers`
+  * **zone** is a availability zone obtained from https://api.vultr.com/v1/regions/list
+  supported zones are:
+  ```
+  NEW_JERSEY, CHICAGO, DALLAS, SEATTLE, LOS_ANGELES, ATLANTA,
+  AMSTERDAM, LONDON, FRANKFURT, SILICON_VALLEY, SYDNEY,
+  PARIS, TOKYO, MIAMI, "SINGAPORE"
+  ```
+  * **plan** is a plan (Mem/CPU) obtained from https://api.vultr.com/v1/plans/list
+  List for common plans are:
+  ```
+  PLAN     RESOURCES
+  ---------------------------------------------------
+  201      "1024 MB RAM,25 GB SSD,1.00 TB BW, 1CPU"
+  202      "2048 MB RAM,40 GB SSD,2.00 TB BW, 1CPU"
+  203      "4096 MB RAM,60 GB SSD,3.00 TB BW, 2CPUs"
+  204      "8192 MB RAM,100 GB SSD,4.00 TB BW, 4CPUs"
+  205      "16384 MB RAM,200 GB SSD,5.00 TB BW, 6CPUs"
+  206      "32768 MB RAM,300 GB SSD,6.00 TB BW, 8CPUs"
+  207      "65536 MB RAM,400 GB SSD,10.00 TB BW, 16CPUs"
+  208      "98304 MB RAM,800 GB SSD,15.00 TB BW, 24 CPUs",
+  ```
+  * **os** is OS id in Vultr obtained from https://api.vultr.com/v1/os/list
+  List for supported OS are:
+  ```
+  CENTOS_6, DEBIAN_7, UBUNTU_14_04, COREOS, DEBIAN_8,
+  UBUNTU_16_04, FEDORA_25, UBUNTU_17_04, DEBIAN_9, FEDORA_26
+  ```
 
 ### Register a node manager
 
-`arm` create a ssh keys for cluster during its creation these are located in `keys/` folder. we use them in the next steps.
+`suarm` create a ssh keys for cluster its are located in `keys/` folder. we use them in the next steps.
 the ips from nodes are described in `swarm.jsom` after cluster creation.
 
-  - `ssh -i keys/<LABEL>_rsa root@<MASTER_NODE_IP>` acces to the master node.
+  - `ssh -i keys/<LABEL>_rsa root@<MASTER_NODE_IP>` to access to the master node.
   - `docker swarm init --advertise-addr <MANAGER-IP>` Start docker as swarm mode.
   - Copy suggested result command to the worker nodes, the command look like as
   ```
@@ -140,9 +174,9 @@ we need persist the **portainer** data with these steps.
 
 ## TODOS
   * **master/slave** automate docker swarm mode in the cluster
-  * **manage domains** add doman to the cluster and manage app domains with Cloudflare 
+  * **manage domains** add doman to the cluster and manage app domains with Cloudflare
   * **deploy app** app deployment with docker-compose
-  
+
 License
 -------
 

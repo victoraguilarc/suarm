@@ -5,7 +5,7 @@ from .cluster import *
 
 @click.group(chain=True)
 def main():
-    click.echo("Starting...")
+    click.echo("\nStarting...")
 
 
 @main.command('node')
@@ -31,19 +31,29 @@ def node(config, resize, delete, plan, subid):
         click.echo(settings["cluster"])
 
 
-@main.command('ssh-keygen')
+@main.command('keys')
 @click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
-def ssh_keygen(config):
-    click.echo('ssh_keygen')
-    register_sshkey()
+@click.option('--create', '-g', is_flag=True, help='Generate and register an sshkey')
+@click.option('--show', '-l', is_flag=True, help='List your sshkeys')
+@click.option('--delete', '-l', is_flag=True, help='List your sshkeys')
+def keys(config, create, show, delete):
+    if create:
+        register_sshkey()
+    elif show:
+        list_sshkeys()
+    elif delete:
+        destroy_sshkey()
+    else:
+        list_sshkeys()
 
 
-@main.command('swarm')
+
+@main.command('cluster')
 @click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
 @click.option('--create', '-c', is_flag=True, help='Create option')
 @click.option('--delete', '-d', is_flag=True, help='Delete Option')
 @click.option('--add-node', '-a', type=int, default=None, help='Delete Option')
-def swarm(config, create, delete, add_node):
+def cluster(config, create, delete, add_node):
     if create:
         create_cluster()
     elif delete:
@@ -92,7 +102,3 @@ def app(config, create, delete):
         click.echo('--> CREATE')
     elif delete:
         click.echo('--> DELETE')
-
-
-
-

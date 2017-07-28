@@ -3,7 +3,12 @@
     "ssh-key": "",
     "label": "",
     "domain": "cluster.xiberty.com",
-    "nodes": {
+    "master": {
+        "zone": 12,
+        "plan": 201,
+        "os": 179
+    },
+    "workers": {
         "replicas": 2,
         "zone": 12,
         "plan": 201,

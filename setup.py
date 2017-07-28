@@ -27,18 +27,18 @@ class PyTest(TestCommand):
 
 
 setup(
-    name="ArmCLI",
+    name="suarm",
     version='0.0.2',
     description="CLI tools dor docker swarm deployment",
     long_description="\n\n".join([open("README.md").read()]),
     license='MIT',
     author="Victor Aguilar C.",
     author_email="victor@xiberty.com",
-    url="https://ArmCLI.readthedocs.org",
-    packages=['arm'],
+    url="https://suarm.readthedocs.org",
+    packages=['suarm'],
     install_requires=requires,
     entry_points={'console_scripts': [
-        'arm = arm.cli:main']},
+        'suarm = suarm.cli:main']},
     classifiers=[
         'Development Status :: 1 - Planning',
         'License :: OSI Approved :: MIT License',
