@@ -20,10 +20,10 @@ With a loadbalancer
     your [Vultr](https://vultr.com) account.
   - Add some `ssh-key` to  `swarm.json` from your account registered ssh-keys. If you don't have one you can
     create one with `suarm keys --create` and register it with `suarm keys`
-  - Create a cluster with `suarm cluster --create` or `suarm -f config_file cluster --create`
+  - Create a cluster with `suarm cluster --create` or `suarm -f <config_file> cluster --create`
 
 #### Destroy Cluster
-  - Destroy cluster with `suarm cluster --delete` or `suarm -f config_file cluster --delete`
+  - Destroy cluster with `suarm cluster --delete` or `suarm -f <config_file> cluster --delete`
 
 ### Configuration file
 
@@ -32,9 +32,9 @@ this file, contains the next values:
 
 ```
 {
-    "api-key": "",
-    "ssh-key": "",
-    "label": "",
+    "api-key": "YOUR_API_KEY",
+    "ssh-key": "YOUR_SSHKEY_ID",
+    "label": "NAME_FOR_CLUSTER",
     "domain": "cluster.xiberty.com",
     "master": {
         "zone": "SILICON_VALLEY",
@@ -185,4 +185,4 @@ License
 
 This code is licensed under the `MIT License`_.
 
-.. _`MIT License`: https://github.com/vicobits/ArmCLI/blob/master/LICENSE
+.. _`MIT License`: https://github.com/vicobits/suarm/blob/master/LICENSE
