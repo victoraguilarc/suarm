@@ -63,17 +63,17 @@ this file, contains the next values:
     ]
 }
 ```
-Then
-  * **api-key** is obtained from the [API](https://my.vultr.com/settings/#settingsapi)
-  * **ssh-key** is a code for a registered ssh key this is obtained from [API](https://api.vultr.com/v1/sshkey/list)
+Where
+  * **api-key** is obtained from the [api](https://my.vultr.com/settings/#settingsapi)
+  * **ssh-key** is a SSHKEYID of some your registered ssh keys in the server this is obtained from [api](https://api.vultr.com/v1/sshkey/list)
   * **master** is config for master node
   * **loadbalancer** is config for loadbalancer node
   * **workers** is config for workers
   * **cluster** contains the created worker servers details.
-  * **label** Is a name for cluster e.g. swarm > swarm01, swarm02 ...
+  * **label** Is a name for cluster e.g. swarm > swarm01, swarm02, ...,  swarm-loadbalancer
   * **replicas** is the quantity of nodes for cluster it would be greater than 0
 
-  * **zone** is a availability zone obtained from the [API](https://api.vultr.com/v1/regions/list)
+  * **zone** is a availability zone obtained from the [api](https://api.vultr.com/v1/regions/list)
   supported zones are:
   ```
   NEW_JERSEY      CHICAGO           DALLAS          SILICON_VALLEY
@@ -81,7 +81,7 @@ Then
   AMSTERDAM       LONDON            FRANKFURT       SINGAPORE
   PARIS           TOKYO             MIAMI
   ```
-  * **plan** is a plan (Mem/CPU) obtained from the [API](https://api.vultr.com/v1/plans/list)
+  * **plan** representa resources for server (Mem/CPU/Price), obtained from the [api](https://api.vultr.com/v1/plans/list)
   List for common plans are:
   ```
   PLAN     MEMORY RAM        STORAGE        BANDWIDTH       CPU         PRICE
