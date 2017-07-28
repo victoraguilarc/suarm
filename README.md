@@ -83,16 +83,16 @@ Then
   * **plan** is a plan (Mem/CPU) obtained from the [API](https://api.vultr.com/v1/plans/list)
   List for common plans are:
   ```
-  PLAN     RESOURCES
-  ---------------------------------------------------
-  201      "1024 MB RAM,25 GB SSD,1.00 TB BW, 1CPU"
-  202      "2048 MB RAM,40 GB SSD,2.00 TB BW, 1CPU"
-  203      "4096 MB RAM,60 GB SSD,3.00 TB BW, 2CPUs"
-  204      "8192 MB RAM,100 GB SSD,4.00 TB BW, 4CPUs"
-  205      "16384 MB RAM,200 GB SSD,5.00 TB BW, 6CPUs"
-  206      "32768 MB RAM,300 GB SSD,6.00 TB BW, 8CPUs"
-  207      "65536 MB RAM,400 GB SSD,10.00 TB BW, 16CPUs"
-  208      "98304 MB RAM,800 GB SSD,15.00 TB BW, 24 CPUs",
+  PLAN     MEMORY RAM        STORAGE        BANDWIDTH       CPU         PRICE
+  -------------------------------------------------------------------------------
+  201      1024 MB RAM      25 GB SSD       1.00 TB BW      1CPU        5 USD
+  202      2048 MB RAM      40 GB SSD       2.00 TB BW      1CPU        10 USD
+  203      4096 MB RAM      60 GB SSD       3.00 TB BW      2CPUs       20 USD
+  204      8192 MB RAM      100 GB SSD      4.00 TB BW      4CPUs       40 USD
+  205      16384 MB RAM     200 GB SSD      5.00 TB BW      6CPUs       80 USD
+  206      32768 MB RAM     300 GB SSD      6.00 TB BW      8CPUs       160 USD
+  207      65536 MB RAM     400 GB SSD      10.00 TB BW     16CPUs      320 USD
+  208      98304 MB RAM     800 GB SSD      15.00 TB BW     24 CPUs     640 USD
   ```
   * **os** is OS id in Vultr obtained from the [API](https://api.vultr.com/v1/os/list)
   List for supported OS are:
