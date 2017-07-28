@@ -60,10 +60,10 @@ def cluster(create, delete, add_node):
         click.echo(settings)
 
 
-@main.command('set')
+@main.command('setup')
 @click.option('--service', type=click.Choice(['dashboard', 'manager', 'worker']))
 @click.option('--subid', '-n', type=str, help='NodeID on Vultr')
-def set(service, subid):
+def setup(service, subid):
     if service == 'dashboard':
         pass
     elif service == 'manager':

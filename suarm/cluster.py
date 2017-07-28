@@ -27,8 +27,6 @@ SLEEP_TIME = 15
 
 # SETTINGS
 # --------------------
-
-
 def config(cfile):
     try:
         config_file = open(cfile, 'r')
@@ -384,3 +382,5 @@ def setup_loadbalancer():
         config_env()
         execute(Server.install, hosts=[settings["loadbalancer"]["ipv4"]])
         execute(Server.haproxy, hosts=[settings["loadbalancer"]["ipv4"]])
+        execute(Server.letsencrypt, hosts=[settings["loadbalancer"]["ipv4"]])
+        execute(Server.restart, hosts=[settings["loadbalancer"]["ipv4"]])
