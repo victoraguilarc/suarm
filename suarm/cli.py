@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import re
 from .cluster import *
+
 
 @click.group(chain=True)
 @click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
@@ -47,15 +49,21 @@ def keys(create, show, delete):
 
 @main.command('cluster')
 @click.option('--create', '-c', is_flag=True, help='Create a Cluster based on swarm.json')
+@click.option('--setup', '-s', is_flag=True, help='Setup nodes [master] and [workers] in the cluster')
 @click.option('--delete', '-d', is_flag=True, help='Delete a Current cluster')
 @click.option('--add-node', '-a', type=int, default=None, help='Add worker to cluster')
-def cluster(create, delete, add_node):
+@click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
+def cluster(create, setup, delete, add_node, restart):
     if create:
         create_cluster()
+    elif setup:
+        setup_cluster()
     elif delete:
         destroy_cluster()
     elif add_node:
         create_servers(add_node)
+    elif restart:
+        restart_cluster()
     else:
         click.echo(settings)
 
@@ -86,12 +94,44 @@ def loadbalancer(create, delete, setup):
         destroy_loadbalancer()
 
 
-@main.command('app')
+@main.command('apps')
 @click.option('--create', '-c', is_flag=True, help='Register an app for deploy in the cluster')
 @click.option('--delete', '-d', is_flag=True, help='Delete an app from de cluster')
-def app(create, delete):
-    click.echo('--> Load balancer...')
+def apps(create, delete):
+
     if create:
-        click.echo('--> CREATE')
+        click.echo('\n--> Registering new app :)\n')
+        name = input("NAME for application : ")
+        if name:
+            email = input("EMAIL for application contact : ")
+            if bool(re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+[a-zA-Z]$)", email)):
+                domain = input("DOMAIN for the application : ")
+                if bool(re.match(r"(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", domain)):
+                    try:
+                        port = int(input("PORT of application in the cluster : "))
+                        if port >= 30000:
+                            https = input("Do you wish enable HTTPS ? (Y/N): ")
+                            _https = False
+                            if https == 'y' or https == 'Y':
+                                _https = True
+
+                            settings["apps"].append({
+                                "name": name, "email": email,
+                                "domain": domain, "port": port,
+                                "https": _https
+                            })
+                            save_on_config("apps", settings["apps"])
+                            click.echo("\nApplication Created!!!")
+                        else:
+                            click.echo("\nInvalid PORT, it should be GREATER THAN 30000 and 50000")
+                    except Exception as e:
+                        click.echo("\nInvalid PORT, it should be INT")
+                else:
+                    click.echo("\nInvalid DOMAIN!!!")
+            else:
+                click.echo("\nInvalid EMAIL!!!")
+
     elif delete:
         click.echo('--> DELETE')
+    else:
+        print(json.dumps(settings["apps"], indent=4, sort_keys=True))

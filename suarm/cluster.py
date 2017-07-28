@@ -8,7 +8,7 @@ from time import sleep
 
 from fabric.state import env
 from fabric.tasks import execute
-from .tasks import Server
+from .tasks import Server, Cluster
 from .vars import OS, ZONES
 
 API_ENDPOINT = "https://api.vultr.com"
@@ -36,6 +36,7 @@ def config(cfile):
            "ssh-key" in settings and \
            "workers" in settings and \
            "loadbalancer" in settings and \
+           "apps" in settings and \
            "label" in settings:
             return settings
         else:
@@ -221,9 +222,9 @@ def create_cluster():
                       add_node("master") and add_node("loadbalancer", oss="UBUNTU_16_04")
 
             if success:
-                click.echo("\n-----------------------------------------------------------------------------------'")
-                click.echo("Cluster created, don't forget save ssh keys, its are in './keys'")
-                click.echo("-----------------------------------------------------------------------------------'")
+                click.echo("\n-----------------------------------------------------------------------------------")
+                click.echo(" Cluster created, don't forget save ssh keys, its are in './keys'")
+                click.echo("-----------------------------------------------------------------------------------")
 
             return success
         else:
@@ -384,3 +385,34 @@ def setup_loadbalancer():
         execute(Server.haproxy, hosts=[settings["loadbalancer"]["ipv4"]])
         execute(Server.letsencrypt, hosts=[settings["loadbalancer"]["ipv4"]])
         execute(Server.restart, hosts=[settings["loadbalancer"]["ipv4"]])
+
+
+def setup_cluster():
+    config_env()
+
+    # Configure master
+    env.type = "master"
+    env.ipv4 = settings["master"]["ipv4"]
+    execute(Cluster.config, hosts=[env.ipv4])
+    # Configure workers
+    for node in settings["cluster"]:
+        env.type = "worker"
+        env.master = settings["master"]["ipv4"]
+        env.ipv4 = node["ipv4"]
+        execute(Cluster.config, hosts=[env.ipv4])
+
+    env.ipv4 = settings["master"]["ipv4"]
+    execute(Cluster.dashboard, hosts=[env.ipv4])
+
+def restart_cluster():
+    config_env()
+
+    # Restart master
+    env.ipv4 = settings["master"]["ipv4"]
+    execute(Server.reboot, hosts=[env.ipv4])
+    print("Server [%s] restarted!!!" % env.ipv4)
+    # Restart workers
+    for node in settings["cluster"]:
+        env.ipv4 = node["ipv4"]
+        execute(Server.reboot, hosts=[env.ipv4])
+        print("Server [%s] restarted!!!" % env.ipv4)

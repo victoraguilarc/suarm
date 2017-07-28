@@ -4,6 +4,10 @@ from fabric.context_managers import lcd, cd
 from fabric.contrib.files import exists, upload_template
 from fabric.operations import sudo, run
 from fabric.state import env
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class Server(object):
@@ -86,6 +90,13 @@ class Server(object):
         run('crontab -l | grep -v "%s"  | crontab -' % cmd)
         run('crontab -l | { cat; echo "%s %s"; } | crontab -' % (repetition, cmd))
 
+    @staticmethod
+    def reboot():
+        """
+         Restart haproxy
+        """
+        sudo('reboot')
+
 
     @staticmethod
     def restart():
@@ -107,3 +118,52 @@ class Server(object):
          Start haproxy
         """
         sudo('service haproxy start')
+
+class Cluster(object):
+
+    @staticmethod
+    def config():
+        """
+        Configure cluster for nodes maser and workers
+        """
+        print("\nConfiguring cluster...\n")
+        if env.type == "master":
+            run("docker swarm leave --force")
+            run("docker swarm init --advertise-addr %s" % env.ipv4)
+            output = run("docker swarm join-token --quiet worker")
+            token = None
+            for line in output.splitlines():
+                token = line
+            env.token = token
+
+        elif env.type == "worker":
+            run("docker swarm leave --force")
+            run("docker swarm join --token %(token)s %(master)s:2377" % {
+                "token": env.token,
+                "master": env.master
+            })
+    @staticmethod
+    def dashboard():
+        """
+        Install docker portainer and vizualizer
+        """
+        print("\nConfiguring dashboard...\n")
+        run("mkdir -p /volumes/portainer/data")
+        run("docker network create -d overlay portainer")
+        run("docker service create \
+        --name portainer \
+        --publish 80:9000 \
+        --constraint 'node.role == manager' \
+        --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+        --mount type=bind,src=/volumes/portainer/data,dst=/data \
+        --network portainer \
+        portainer/portainer \
+        -H unix:///var/run/docker.sock")
+
+        run("docker service create \
+        --name=viz \
+        --publish=8080:8080/tcp \
+        --constraint=node.role==manager \
+        --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+        dockersamples/visualizer")
+        print("\nDashboard configured!!!...\n")

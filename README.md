@@ -164,17 +164,6 @@ we need persist the **portainer** data with these steps.
   dockersamples/visualizer
   ```
 
-  docker service create \
-  --name=nginx-proxy \
-  --publish=80:80/tcp \
-  --constraint=node.role==manager \
-  --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
-  jwilder/nginx-proxy
-
-
-
- docker run -d -p 80:80 -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
-
 ## TODOS
   * **master/slave** automate docker swarm mode in the cluster
   * **manage domains** add doman to the cluster and manage app domains with Cloudflare
