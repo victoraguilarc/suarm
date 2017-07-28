@@ -3,7 +3,7 @@ from .cluster import *
 
 @click.group(chain=True)
 @click.option('--config', '-f', type=click.Path(), help='Config file "swarm.json"')
-def main():
+def main(config):
     click.echo("\nStarting...")
 
 
