@@ -76,9 +76,10 @@ Then
   * **zone** is a availability zone obtained from the [API](https://api.vultr.com/v1/regions/list)
   supported zones are:
   ```
-  NEW_JERSEY, CHICAGO, DALLAS, SEATTLE, LOS_ANGELES, ATLANTA,
-  AMSTERDAM, LONDON, FRANKFURT, SILICON_VALLEY, SYDNEY,
-  PARIS, TOKYO, MIAMI, "SINGAPORE"
+  NEW_JERSEY      CHICAGO           DALLAS          SILICON_VALLEY
+  SEATTLE         LOS_ANGELES       ATLANTA         SYDNEY
+  AMSTERDAM       LONDON            FRANKFURT       SINGAPORE
+  PARIS           TOKYO             MIAMI
   ```
   * **plan** is a plan (Mem/CPU) obtained from the [API](https://api.vultr.com/v1/plans/list)
   List for common plans are:
@@ -97,8 +98,8 @@ Then
   * **os** is OS id in Vultr obtained from the [API](https://api.vultr.com/v1/os/list)
   List for supported OS are:
   ```
-  CENTOS_6, DEBIAN_7, UBUNTU_14_04, COREOS, DEBIAN_8,
-  UBUNTU_16_04, FEDORA_25, UBUNTU_17_04, DEBIAN_9, FEDORA_26
+  CENTOS_6        DEBIAN_7      UBUNTU_14_04      COREOS      DEBIAN_8,
+  UBUNTU_16_04    FEDORA_25     UBUNTU_17_04      DEBIAN_9    FEDORA_26
   ```
 
 ### Register a node manager
