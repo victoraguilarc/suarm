@@ -44,7 +44,7 @@ def config(cfile):
             click.echo("\n---> 'swarm.json' hasn't a valid format")
             return None
     except Exception as e:
-        click.echo('\n\nA VALID swarm.json file is required! \nERROR: %s\n\n' % str(e))
+        click.echo('\n-----\nA VALID swarm.json file is required!')
         return None
 
 
