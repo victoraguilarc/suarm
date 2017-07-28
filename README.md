@@ -62,8 +62,8 @@ this file, contains the next values:
 }
 ```
 Then
-  * **api-key** is obtained from https://my.vultr.com/settings/#settingsapi
-  * **ssh-key** is a code for a registered ssh key this is obtained from https://api.vultr.com/v1/sshkey/list
+  * **api-key** is obtained from the [API](https://my.vultr.com/settings/#settingsapi)
+  * **ssh-key** is a code for a registered ssh key this is obtained from [API](https://api.vultr.com/v1/sshkey/list)
   * **master** is config for master node
   * **loadbalancer** is config for loadbalancer node
   * **workers** is config for workers
@@ -71,14 +71,14 @@ Then
   * **label** Is a name for cluster e.g. swarm > swarm01, swarm02 ...
   * **replicas** is the quantity of nodes for cluster it would be greater than 0
 
-  * **zone** is a availability zone obtained from https://api.vultr.com/v1/regions/list
+  * **zone** is a availability zone obtained from the [API](https://api.vultr.com/v1/regions/list)
   supported zones are:
   ```
   NEW_JERSEY, CHICAGO, DALLAS, SEATTLE, LOS_ANGELES, ATLANTA,
   AMSTERDAM, LONDON, FRANKFURT, SILICON_VALLEY, SYDNEY,
   PARIS, TOKYO, MIAMI, "SINGAPORE"
   ```
-  * **plan** is a plan (Mem/CPU) obtained from https://api.vultr.com/v1/plans/list
+  * **plan** is a plan (Mem/CPU) obtained from the [API](https://api.vultr.com/v1/plans/list)
   List for common plans are:
   ```
   PLAN     RESOURCES
@@ -92,7 +92,7 @@ Then
   207      "65536 MB RAM,400 GB SSD,10.00 TB BW, 16CPUs"
   208      "98304 MB RAM,800 GB SSD,15.00 TB BW, 24 CPUs",
   ```
-  * **os** is OS id in Vultr obtained from https://api.vultr.com/v1/os/list
+  * **os** is OS id in Vultr obtained from the [API](https://api.vultr.com/v1/os/list) 
   List for supported OS are:
   ```
   CENTOS_6, DEBIAN_7, UBUNTU_14_04, COREOS, DEBIAN_8,
