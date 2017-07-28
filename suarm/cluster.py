@@ -41,10 +41,10 @@ def config(cfile):
            "label" in settings:
             return settings
         else:
-            click.echo("\n---> 'swarm.json' hasn't a valid format")
+            sys.exit('\n-----\nA VALID swarm.json file is required!')
             return None
     except Exception as e:
-        click.echo('\n-----\nA VALID swarm.json file is required!')
+        sys.exit('\n-----\nA VALID swarm.json file is required!')
         return None
 
 
