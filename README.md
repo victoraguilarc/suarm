@@ -3,24 +3,26 @@
 Tools for deploy a cheap Docker Swarm cluster in https://vultr.com servers over CoreOS
 With a loadbalancer
 
-## Instalation
+## Installation
 
 `[sudo] pip install git+https://github.com/vicobits/suarm.git`
 
-### development
+#### development
   - Install build essential tools with `sudo apt install build-essential`
   - Prepare environment with `make env`
   - Configure  `swarm.json` file.
   - Edit files
 
 ## Usage
+
+#### Create Cluster
   - Add `api-key` to `swarm.json` from value generated in [API Section](https://my.vultr.com/settings/#settingsapi) in
     your [Vultr](https://vultr.com) account.
   - Add some `ssh-key` to  `swarm.json` from your account registered ssh-keys. If you don't have one you can
     create one with `suarm keys --create` and register it with `suarm keys`
   - Create a cluster with `suarm cluster --create` or `suarm -f config_file cluster --create`
 
-## Destroy Cluster
+#### Destroy Cluster
   - Destroy cluster with `suarm cluster --delete` or `suarm -f config_file cluster --delete`
 
 ### Configuration file
