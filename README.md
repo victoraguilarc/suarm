@@ -5,7 +5,7 @@ With a loadbalancer
 
 ## Instalation
 
-`[sudo] pip install git+https://github.com/vicobits/ArmCLI.git`
+`[sudo] pip install git+https://github.com/vicobits/suarm.git`
 
 ### development
   - Install build essential tools with `sudo apt install build-essential`
@@ -92,7 +92,7 @@ Then
   207      "65536 MB RAM,400 GB SSD,10.00 TB BW, 16CPUs"
   208      "98304 MB RAM,800 GB SSD,15.00 TB BW, 24 CPUs",
   ```
-  * **os** is OS id in Vultr obtained from the [API](https://api.vultr.com/v1/os/list) 
+  * **os** is OS id in Vultr obtained from the [API](https://api.vultr.com/v1/os/list)
   List for supported OS are:
   ```
   CENTOS_6, DEBIAN_7, UBUNTU_14_04, COREOS, DEBIAN_8,
