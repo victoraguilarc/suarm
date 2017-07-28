@@ -101,7 +101,10 @@ Where
   CENTOS_6        DEBIAN_7      UBUNTU_14_04      COREOS      DEBIAN_8,
   UBUNTU_16_04    FEDORA_25     UBUNTU_17_04      DEBIAN_9    FEDORA_26
   ```
+# Configure cluster
+Use the command `suarm cluster --setup` or setup cluster manually.
 
+## Setup cluster manually
 ### Register a node manager
 
 `suarm` create a ssh keys for cluster its are located in `keys/` folder. we use them in the next steps.
