@@ -15,15 +15,3 @@ env:
 	$(PIP) install -r requirements.txt
 	. env/bin/activate
 	$(PIP) install --editable .
-
-# CREATE CLUSTER
-create_cluster:
-	$(PYTHON) ./tools/swarm/cluster.py create
-
-# DESTROY CLUSTER
-destroy_cluster:
-	$(PYTHON) ./tools/swarm/cluster.py destroy
-
-# SUPPLY CLUSTER
-cluster_keygen:
-	$(PYTHON) ./tools/swarm/cluster.py ssh-keygen
