@@ -168,8 +168,7 @@ we need persist the **portainer** data with these steps.
   ```
 
 ## TODOS
-  * **master/slave** automate docker swarm mode in the cluster
-  * **manage domains** add doman to the cluster and manage app domains with Cloudflare
+  * **manage domains** add domain to the cluster and manage app domains with Cloudflare
   * **deploy app** app deployment with docker-compose
 
 License
