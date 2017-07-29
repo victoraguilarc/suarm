@@ -128,7 +128,7 @@ class Cluster(object):
         """
         print("\nConfiguring cluster...\n")
         if env.type == "master":
-            run("docker swarm leave --force")
+            # run("docker swarm leave --force")
             run("docker swarm init --advertise-addr %s" % env.ipv4)
             output = run("docker swarm join-token --quiet worker")
             token = None
@@ -137,7 +137,7 @@ class Cluster(object):
             env.token = token
 
         elif env.type == "worker":
-            run("docker swarm leave --force")
+            # run("docker swarm leave --force")
             run("docker swarm join --token %(token)s %(master)s:2377" % {
                 "token": env.token,
                 "master": env.master
