@@ -1,9 +1,13 @@
 from __future__ import unicode_literals
 
+import re
 from fabric.context_managers import lcd, cd
 from fabric.contrib.files import exists, upload_template
 from fabric.operations import sudo, run
 from fabric.state import env
+from fabric.api import settings
+from fabric.tasks import execute
+
 try:
     from StringIO import StringIO
 except ImportError:
@@ -122,26 +126,80 @@ class Server(object):
 class Cluster(object):
 
     @staticmethod
+    def managers():
+        cmd = "docker swarm join --token %(token)s %(master)s:2377" % {
+            "token": env.token_manager,
+            "master": env.master}
+
+        result = run(cmd)
+        if bool(re.match(r"(^.*docker swarm leave.*$)", result)):
+            run("docker swarm leave --force")
+            run(cmd)
+
+    @staticmethod
+    def workers():
+        env.hosts = env.workers
+        cmd = "docker swarm join --token %(token)s %(master)s:2377" % {
+            "token": env.token_worker,
+            "master": env.master}
+        result = run(cmd)
+        if bool(re.match(r"(^.*docker swarm leave.*$)", result)):
+            run("docker swarm leave --force")
+            run(cmd)
+
+    @staticmethod
     def config():
         """
         Configure cluster for nodes maser and workers
         """
-        print("\nConfiguring cluster...\n")
-        if env.type == "master":
-            # run("docker swarm leave --force")
-            run("docker swarm init --advertise-addr %s" % env.ipv4)
-            output = run("docker swarm join-token --quiet worker")
-            token = None
-            for line in output.splitlines():
-                token = line
-            env.token = token
+        with settings(warn_only=True):
+            env.hosts = [env.master]
+            cmd = "docker swarm init --advertise-addr %s" % env.master
+            result = run(cmd)
 
-        elif env.type == "worker":
-            # run("docker swarm leave --force")
-            run("docker swarm join --token %(token)s %(master)s:2377" % {
-                "token": env.token,
-                "master": env.master
-            })
+            if bool(re.match(r"(^.*docker swarm leave.*$)", result)):
+                run("docker swarm leave --force")
+                run(cmd)
+
+            token_worker = None
+            token_manager = None
+
+            output = run("docker swarm join-token --quiet worker")
+            for line in output.splitlines():
+                token_worker = line
+
+            output = run("docker swarm join-token --quiet manager")
+            for line in output.splitlines():
+                token_manager = line
+
+            env.token_manager = token_manager
+            env.token_worker = token_worker
+
+            if env.managers:
+                env.hosts = env.managers
+                execute(Cluster.managers, hosts=env.managers)
+
+            if env.workers:
+                env.hosts = env.workers
+                execute(Cluster.workers, hosts=env.workers)
+
+
+    @staticmethod
+    def registry():
+        """
+        Install docker registry
+        """
+        print("\nREGISTRY\n")
+
+
+    @staticmethod
+    def loadbalancer():
+        """
+        Install docker loadbalancer
+        """
+        print("\LOADBALANCER\n")
+
+
     @staticmethod
     def dashboard():
         """
@@ -167,3 +225,11 @@ class Cluster(object):
         --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
         dockersamples/visualizer")
         print("\nDashboard configured!!!...\n")
+
+
+    @staticmethod
+    def proxy():
+        """
+        Install docker registry
+        """
+        print("\nPROXY\n")

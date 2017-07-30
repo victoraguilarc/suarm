@@ -10,6 +10,8 @@ from fabric.state import env
 from fabric.tasks import execute
 from .tasks import Server, Cluster
 from .vars import OS, ZONES
+from .errors import *
+
 
 API_ENDPOINT = "https://api.vultr.com"
 
@@ -34,9 +36,10 @@ def config(cfile):
 
         if "api-key" in settings and \
            "ssh-key" in settings and \
-           "workers" in settings and \
-           "loadbalancer" in settings and \
+           "worker" in settings and \
+           "manager" in settings and \
            "apps" in settings and \
+           "email" in settings and \
            "label" in settings:
             return settings
         else:
@@ -70,63 +73,35 @@ settings = config(CONFIG_FILE)
 headers = get_headers(settings)
 
 
-def create_server(zone, plan, oss, label, tag=None):
+def create_server(zone, plan, oss, label, mode="worker"):
     """
     DCID =  Availibilisty region
     VPSPLANID = VPS Plan (Mem/CPU)
     OSID = Operative System
     """
-
-    if not tag:
-        _nro = len(settings["cluster"])
-        if _nro < 10:
-            _label = "%s0%s" % (label, _nro)
-        else:
-            _label = "%s%s" % (label, _nro)
-    else:
-        _label = label
-
     _zone = get_zone(zone)
-    _os = get_os(oss)
+    _oss = get_os(oss)
 
-    if not zone or not os:
-        click.echo("\nUnsupported OS or ZONE!!")
-        return None
+    if not _zone:
+        click.echo("\nUnsupported ZONE, we use default ZONE!!")
+        _zone = "NEW_JERSEY"
 
-    payload = {'DCID': _zone, 'VPSPLANID': plan, 'OSID': _os, 'label': _label, 'host': _label,
+    if not _oss:
+        click.echo("\nUnsupported OS, we use default OS!!")
+        _oss = "COREOS"
+
+    payload = {'DCID': _zone, 'VPSPLANID': plan, 'OSID': _oss, 'label': label, 'host': label,
                'SSHKEYID': settings["ssh-key"]}
+
     req = requests.post(API_ENDPOINT + CREATE_SERVER, data=payload, headers=headers)
     if req.status_code == 200:
-        if tag:
-            settings[tag] = req.json()
-            settings[tag]["zone"] = zone
-            settings[tag]["plan"] = plan
-            settings[tag]["os"] = oss
-            save_on_config(tag, settings[tag])
-            click.echo("\n--> Server [%s] created... \n %s" % (tag, req.text))
-        else:
-            settings["cluster"].append(req.json())
-            save_on_config("cluster", settings["cluster"])
-            click.echo("\n--> Server [worker] created... \n" + req.text)
+        settings[mode]["nodes"].append(req.json())
+        save_on_config(mode, settings[mode])
+        click.echo("\n--> Server [%s] created... \n %s" % (mode, req.text))
         return True
     else:
         click.echo("\nERROR >> " + req.text)
         click.echo("--> Couldn't create server, don't forget register a SSH Key")
-        return False
-
-
-def destroy_server(subid, srv=None, is_worker=False):
-    payload = {'SUBID': subid}
-    req = requests.post(API_ENDPOINT + DESTROY_SERVER, data=payload, headers=headers)
-    if req.status_code == 200:
-        if srv:
-            if "SUBID" in srv:
-                srv.pop("SUBID", None)
-            if "ipv4" in srv:
-                srv.pop("ipv4", None)
-        return True
-    else:
-        click.echo("\n--> Couldn't create server!!")
         return False
 
 
@@ -142,33 +117,64 @@ def resize_server(subid, plan):
 
 
 def exist_cluster():
-    return "cluster" in settings and isinstance(settings["cluster"], list) and len(settings["cluster"]) > 0
+    wk = "nodes" in settings["worker"] and isinstance(settings["worker"]["nodes"], list) \
+        and len(settings["worker"]["nodes"]) > 0
+
+    mg = "nodes" in settings["manager"] and isinstance(settings["manager"]["nodes"], list) \
+        and len(settings["manager"]["nodes"]) > 0
+
+    return wk and mg
+
+
+def destroy_server(subid, mode="worker"):
+    payload = {'SUBID': subid}
+    req = requests.post(API_ENDPOINT + DESTROY_SERVER, data=payload, headers=headers)
+    if req.status_code == 200:
+        nodes = settings[mode]["nodes"]
+        _nodes = []
+        for node in nodes:
+            if "SUBID" in node and node["SUBID"] != subid:
+                _node.append(node)
+
+        settings[mode]["nodes"] = _nodes
+        save_on_config(mode, settings[mode])
+        return True
+    else:
+        click.echo("\n--> Couldn't create server!!, ERROR: %s" % req.text)
+        return False
+
+
+def destroy_servers(mode="worker"):
+    nodes = settings[mode]["nodes"]
+    success = True; index = 0
+    for node in nodes:
+        click.echo(node)
+        try:
+            subid = node["SUBID"]
+            success = success and destroy_server(subid, mode=mode)
+        except Exception as e:
+            click.echo("Invalid SUBID: on deleting...")
+            success = success and False
+        index += 1
+
+    if success:
+        click.echo("The [%s] servers destroyed!!" % mode)
+        settings[mode]["nodes"] = list()
+        save_on_config(mode, settings[mode])
+    return success
 
 
 def destroy_cluster():
     if exist_cluster():
         destroy = input("Destroy Cluster, Are you sure? (y/N) : ")
         if destroy == 'y' or destroy == 'Y':
-            success = True
-            index = 0
-
-            for node in settings["cluster"]:
-                click.echo(node)
-                try:
-                    subid = int(node["SUBID"])
-                    success = success and destroy_server(subid)
-                except Exception as e:
-                    click.echo("Invalid SUBID: on deleting...")
-                    success = False
-                index += 1
-
-            if success:
-                save_on_config("cluster", list())
-            return success and del_node("master") and del_node("loadbalancer")
-
+            return destroy_servers(mode="worker") and destroy_servers(mode="manager")
+        else:
+            return False
     else:
         click.echo("\n--> Doesn't exist a cluster created by this script...!!! \n")
         return False
+
 
 def get_zone(key):
     if key in ZONES:
@@ -181,25 +187,43 @@ def get_os(key):
         return OS[key]
     return False
 
-def create_servers(replicas):
+
+def create_servers(replicas, mode="worker"):
+
+    label = settings["label"]
+    zone = settings[mode].get("zone", "NEW_JERSEY")
+    plan = settings[mode].get("plan", 201)
+    oss = settings[mode].get("os", "COREOS")
+    nro = len(settings[mode]["nodes"])
+
+    if replicas <= 0:
+        sys.exit("You need at least 1 replica")
+
     success = True
-    for i in range(replicas):
-        success = success and create_server(
-            settings["workers"]["zone"], settings["workers"]["plan"],
-            settings["workers"]["os"], settings["label"])
+    for nro in range(replicas):
+
+        if len(range(replicas)) == 1:
+            _label = "%s-%s" % (label, mode)
+        elif nro < 10:
+            _label = "%s-%s0%s" % (label, mode, nro)
+        else:
+            _label = "%s-%s%s" % (label, mode, nro)
+
+        success = success and create_server(zone, plan, oss, _label, mode=mode)
         sleep(2)
 
     if success:
         click.echo("\nRegistering IPs...")
-
         sleep(SLEEP_TIME)
-        for node in settings["cluster"]:
-            node["ipv4"] = register_ip(node["SUBID"])
-            save_on_config("cluster", settings["cluster"])
 
-        settings["workers"]["replicas"] = len(settings["cluster"])
-        save_on_config("workers", settings["workers"])
+        for node in settings[mode]["nodes"]:
+            node["ipv4"] = register_ip(node["SUBID"])
+            save_on_config(mode, settings[mode])
+
+        settings[mode]["replicas"] = len(settings[mode]["nodes"])
+        save_on_config(mode, settings[mode])
     return success
+
 
 def create_cluster():
     if exist_cluster():
@@ -209,29 +233,31 @@ def create_cluster():
         elif create != 'y' and create != 'Y':
             return None
     else:
-        settings["cluster"] = []
-        save_on_config("cluster", list())
+        settings["worker"]["nodes"] = []
+        settings["manager"]["nodes"] = []
+        save_on_config("worker", settings["worker"])
+        save_on_config("manager", settings["manager"])
+
 
     if len(settings["ssh-key"]) > 0:
 
-        if "replicas" in settings["workers"] and \
-            isinstance(settings["workers"]["replicas"], int) and \
-            settings["workers"]["replicas"] > 0:
+        # Create worker nodes
+        worker_replicas = settings["worker"].get("replicas", 1)
+        manager_replicas = settings["manager"].get("replicas", 1)
 
-            success = create_servers(settings["workers"]["replicas"]) and \
-                      add_node("master") and add_node("loadbalancer", oss="UBUNTU_16_04")
+        if valid_int(worker_replicas) and valid_int(manager_replicas):
+
+            success = create_servers(worker_replicas, mode="worker") and \
+                      create_servers(manager_replicas, mode="manager")
 
             if success:
                 click.echo("\n-----------------------------------------------------------------------------------")
                 click.echo(" Cluster created, don't forget save ssh keys, its are in './keys'")
                 click.echo("-----------------------------------------------------------------------------------")
-
-            return success
         else:
             click.echo("\nInvalid value in [workers][replicas] \nThis must be an integer greater than 0\n")
-            return False
     else:
-        click.echo("\n--> Would be register a SSH Key first with: 'make cluster_keygen'")
+        click.echo("\n--> Would be register a SSH Key first with: 'suarm keys --create'")
         return False
 
 
@@ -267,6 +293,7 @@ def register_sshkey():
     else:
         click.echo("\n--> Invalid or Deleted SSH key")
 
+
 def destroy_sshkey():
     sshkeyid = settings["ssh-key"]
     if sshkeyid:
@@ -284,6 +311,7 @@ def destroy_sshkey():
             click.echo("\n--> ERROR: %s " % req.text)
     else:
         click.echo("\n--> Invalid SSH key")
+
 
 def list_sshkeys():
     req = requests.get(API_ENDPOINT + LIST_SSHKEY, headers=headers)
@@ -311,108 +339,96 @@ def list_sshkeys():
                         click.echo("The value must be between the options in the list")
                 except Exception as e:
                     click.echo("Invalid value...")
-
-
-
     else:
         click.echo("\n--> ERROR: %s " % req.text)
 
+def setup_workers():
+    nodes = env.nodes
 
-def add_node(tag, plan=201, oss="COREOS", zone="SILICON_VALLEY"):
-    """
-      Defaults:
-        plan = 1GB RAM / 1CPU
-        os = CoreOS
-        zone = Silicon Valley
-    """
-    if exist_cluster():
-        if tag in settings:
-            if "SUBID" in settings[tag] and "ipv4" in settings[tag]:
-                create = input("Are your sure to (re)create this? (y/N) : ")
-                if create != 'y' and create != 'Y':
-                    click.echo("\n----> You are wise!")
-                    return False
-            if "zone" in settings[tag]:
-                zone = settings[tag]["zone"]
+    if len(nodes) == 0:
+        sys.exit('\n-----\n You need configure a cluster WORKERS first')
 
-            if "plan" in settings[tag]:
-                plan = settings[tag]["plan"]
+    index = 0
+    for node in nodes:
+        env.ipv4 = node["ipv4"]
+        execute(Cluster.worker, hosts=[env.ipv4])
 
-            if "os" in settings[tag]:
-                oss = settings[tag]["os"]
-        else:
-            settings[tag] = dict()
 
-        success = create_server(zone=zone, plan=plan, oss=oss, label="%s-%s" % (settings["label"], tag), tag=tag)
-        if "SUBID" in settings[tag] and success:
-            sleep(SLEEP_TIME)
-            settings[tag]["ipv4"] = register_ip(settings[tag]["SUBID"])
-            save_on_config(tag, settings[tag])
+def setup_managers():
+    nodes = env.nodes
 
-        return success
+    if len(nodes) == 0:
+        sys.exit('\n-----\n You need configure a cluster MANAGERS first')
+
+    if len(nodes) == 1:
+        env.ipv4 = nodes[0]["ipv4"]
+        execute(Cluster.manager_primary, hosts=[env.ipv4])
     else:
-        click.echo("You need a clouster first")
-        return False
-
-def del_node(tag):
-    if tag in settings and "SUBID" in settings[tag]:
-        payload = {'SUBID': settings[tag]["SUBID"]}
-        req = requests.post(API_ENDPOINT + DESTROY_SERVER, data=payload, headers=headers)
-        if req.status_code == 200:
-            settings[tag] = {}
-            save_on_config(tag, settings[tag])
-            click.echo("\n--> Server %s deleted!!" % tag)
-            return True
-        else:
-            click.echo("\n--> Couldn't create server!!")
-            return False
-    else:
-        click.echo("\n--> Load %s improperly configured!!" % tag)
-        return False
-
+        index = 0
+        for node in nodes:
+            env.ipv4 = node["ipv4"]
+            if index == 0:
+                execute(Cluster.manager_primary, hosts=[env.ipv4])
+            else:
+                execute(Cluster.manager_secondary, hosts=[env.ipv4])
+            index += 1
 
 def config_env():
     env.user = 'root'
     env.key_filename = 'keys/%s_rsa' % settings["label"]
     env.apps = settings["apps"]
-    env.cluster = settings["cluster"]
 
 
-def setup_loadbalancer():
-    if "loadbalancer" in settings and "ipv4" in settings["loadbalancer"]:
-        config_env()
-        execute(Server.install, hosts=[settings["loadbalancer"]["ipv4"]])
-        execute(Server.haproxy, hosts=[settings["loadbalancer"]["ipv4"]])
-        execute(Server.letsencrypt, hosts=[settings["loadbalancer"]["ipv4"]])
-        execute(Server.restart, hosts=[settings["loadbalancer"]["ipv4"]])
+    workers = settings["worker"]["nodes"]
+    _workers = []
+    for server in workers:
+        _workers.append(server["ipv4"])
+    env.workers = _workers
+
+    managers = settings["manager"]["nodes"]
+    _managers = []
+    for server in managers:
+        _managers.append(server["ipv4"])
+
+    if len(_managers) <= 0:
+        sys.exit('\n-----\n You need configure a cluster MANAGERS first')
+    else:
+        env.master = _managers[0]
+        if len(_managers) > 1:
+            _nodes = list(_managers)
+            del _nodes[0]
+            env.managers = _nodes
+        else:
+            env.managers = None
+
+    click.echo("------------------------------------------")
+    click.echo("MASTER: %s" % env.master)
+    click.echo("MANAGERS: %s" % env.managers)
+    click.echo("WORKERS: %s" % env.workers)
+    click.echo("------------------------------------------")
 
 
 def setup_cluster():
     config_env()
+    execute(Cluster.config, hosts=[env.master])
+    setup_dashboard()
 
-    # Configure master
-    env.type = "master"
-    env.ipv4 = settings["master"]["ipv4"]
-    execute(Cluster.config, hosts=[env.ipv4])
-    # Configure workers
-    for node in settings["cluster"]:
-        env.type = "worker"
-        env.master = settings["master"]["ipv4"]
-        env.ipv4 = node["ipv4"]
-        execute(Cluster.config, hosts=[env.ipv4])
 
-    env.ipv4 = settings["master"]["ipv4"]
-    execute(Cluster.dashboard, hosts=[env.ipv4])
-
-def restart_cluster():
+def xetup_registry():
     config_env()
+    execute(Cluster.registry, hosts=[env.master])
 
-    # Restart master
-    env.ipv4 = settings["master"]["ipv4"]
-    execute(Server.reboot, hosts=[env.ipv4])
-    print("Server [%s] restarted!!!" % env.ipv4)
-    # Restart workers
-    for node in settings["cluster"]:
-        env.ipv4 = node["ipv4"]
-        execute(Server.reboot, hosts=[env.ipv4])
-        print("Server [%s] restarted!!!" % env.ipv4)
+
+def xetup_dashboard():
+    config_env()
+    execute(Cluster.dashboard, hosts=[env.master])
+
+
+def xetup_loadbalancer():
+    config_env()
+    execute(Cluster.loadbalancer, hosts=[env.master])
+
+
+def xetup_proxy():
+    config_env()
+    execute(Cluster.proxy, hosts=[env.master])

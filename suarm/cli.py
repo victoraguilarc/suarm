@@ -51,17 +51,33 @@ def keys(create, show, delete):
 @click.option('--create', '-c', is_flag=True, help='Create a Cluster based on swarm.json')
 @click.option('--setup', '-s', is_flag=True, help='Setup nodes [master] and [workers] in the cluster')
 @click.option('--delete', '-d', is_flag=True, help='Delete a Current cluster')
-@click.option('--add-node', '-a', type=int, default=None, help='Add worker to cluster')
+@click.option('--add-worker', '-a', type=int, default=None, help='Add worker to cluster')
+@click.option('--add-manager', '-a', type=int, default=None, help='Add manager to cluster')
+@click.option('--setup-registry', '-sr', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
+@click.option('--setup-loadbalancer', '-sl', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
+@click.option('--setup-proxy', '-sp', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
+@click.option('--setup-dashboard', '-sd', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
 @click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
-def cluster(create, setup, delete, add_node, restart):
+def cluster(create, setup, delete, add_worker, add_manager, setup_registry,
+            setup_loadbalancer, setup_proxy, setup_dashboard, restart):
     if create:
         create_cluster()
     elif setup:
         setup_cluster()
     elif delete:
         destroy_cluster()
-    elif add_node:
+    elif add_worker:
         create_servers(add_node)
+    elif add_manager:
+        pass
+    elif setup_registry:
+        xetup_registry()
+    elif setup_loadbalancer:
+        xetup_registry()
+    elif setup_proxy:
+        xetup_proxy()
+    elif setup_dashboard:
+        xetup_dashboard()
     elif restart:
         restart_cluster()
     else:
