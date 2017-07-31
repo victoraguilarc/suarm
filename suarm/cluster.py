@@ -55,8 +55,6 @@ if os.path.isfile(CONFIG_FILE):
 else:
     settings = None
     headers = None
-    sys.exit('[swarm.json] file is required!')
-
 
 def get_headers(settings):
     if "api-key" in settings:
