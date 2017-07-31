@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-import re
+import os, sys, re
 from fabric.context_managers import lcd, cd, quiet, hide
 from fabric.contrib.files import exists, upload_template
 from fabric.operations import sudo, run
