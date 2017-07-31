@@ -43,11 +43,19 @@ def config(cfile):
            "label" in settings:
             return settings
         else:
-            sys.exit('\n-----\nA VALID swarm.json file is required!')
+            sys.exit('Valid [swarm.json] file is required!')
             return None
     except Exception as e:
-        sys.exit('\n-----\nA VALID swarm.json file is required!')
+        sys.exit('Valid [swarm.json] file is required!')
         return None
+
+if os.path.isfile(CONFIG_FILE):
+    settings = config(CONFIG_FILE)
+    headers = get_headers(settings)
+else:
+    settings = None
+    headers = None
+    sys.exit('[swarm.json] file is required!')
 
 
 def get_headers(settings):
@@ -67,11 +75,6 @@ def register_ip(subid):
     else:
         click.echo(req.text)
         return None
-
-
-settings = config(CONFIG_FILE)
-headers = get_headers(settings)
-
 
 def create_server(zone, plan, oss, label, mode="worker"):
     """
