@@ -10,6 +10,9 @@ from suarm.tasks import Cluster
 def deploy_app():
     mode = os.environ.get('DEPLOY_MODE', False)
     if mode:
+        print("------------------------------")
+        print(" Production mode")
+        print("------------------------------")
         cluster = os.environ.get('DEPLOY_CLUSTER', None)
         label = os.environ.get('DEPLOY_PROJECT', None)
         env.variables = os.environ.get('DEPLOY_ENVIRONMENT', None)
