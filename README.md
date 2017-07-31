@@ -115,6 +115,10 @@ For setup cluster manually check [Manually docs](COMMANDS.md)
   * **manage domains** add domain to the cluster and manage app domains with Cloudflare
   * **deploy app** app deployment with docker-compose
 
+## Extra Config
+For proxy config options check [dockerflow-proxy](http://proxy.dockerflow.com)
+For letsencrypt config options check [dockerflow-le](https://github.com/n1b0r/docker-flow-proxy-letsencrypt)
+
 License
 -------
 This code is licensed under the `MIT License`_.
