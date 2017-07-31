@@ -261,7 +261,7 @@ class Cluster(object):
                             destination='/apps/%s/.environment' % label,
                             template_dir="./",
                         )
-                    local("rm .tmpenv")
+                    local("rm /tmp/.tmpenv")
                     print("[.environment] uploaded and configured...")
 
                 else:
