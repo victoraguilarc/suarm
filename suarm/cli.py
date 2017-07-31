@@ -111,7 +111,7 @@ def loadbalancer(create, delete, setup):
 @click.option('--create', '-c', is_flag=True, help='Register an app for deploy in the cluster')
 @click.option('--delete', '-r', is_flag=True, help='Delete an app from de cluster')
 @click.option('--deploy', '-d', is_flag=True, help='Deploy an app ')
-def apps(create, delete):
+def apps(create, delete, deploy):
 
     if create:
         click.echo('\n--> Registering new app :)\n')
