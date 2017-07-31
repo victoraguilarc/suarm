@@ -229,7 +229,7 @@ class Cluster(object):
     def deploy_app():
         cluster = env.master
         label = env.label
-        
+
         if cluster and label:
             print("CLUSTER: %s" % cluster)
             print("LABEL: %s" % label)
@@ -238,13 +238,17 @@ class Cluster(object):
             run("mkdir -p %s" % folder)
             run("mkdir -p %s/data" % folder)
 
-            with cd(folder):
-                upload_template(
-                    filename="./.environment",
-                    destination='%s/.environment' % folder,
-                    template_dir="./",
-                )
-                print("---> [.environment] uploaded...!!!")
+            if env.develop:
+                with cd(folder):
+                    upload_template(
+                        filename="./.environment",
+                        destination='%s/.environment' % folder,
+                        template_dir="./",
+                    )
+                    print("---> [.environment] uploaded...!!!")
+            else:
+                # Create .environment from env variables
+                pass
 
             if os.path.isfile("docker-compose.yml"):
                 with cd("/apps/%s" % label):

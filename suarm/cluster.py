@@ -451,10 +451,5 @@ def deploy_app():
 
     env.master = cluster
     env.label = label
-
-    print("------------------------------")
-    print(env.master)
-    print(env.label)
-    print("------------------------------")
-
-    # execute(Cluster.deploy_app, hosts=[])
+    env.develop = not mode
+    execute(Cluster.deploy_app, hosts=[env.master])
