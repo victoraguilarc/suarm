@@ -224,3 +224,37 @@ class Cluster(object):
             run("docker stack deploy --compose-file /apps/proxy/proxy.yml proxy")
 
         print("---> Proxy has been installed... :)")
+
+    @staticmethod
+    def deploy_app():
+        cluster = env.master
+        label = env.label
+        
+        if cluster and label:
+            print("CLUSTER: %s" % cluster)
+            print("LABEL: %s" % label)
+
+            folder = "/apps/%s" % label
+            run("mkdir -p %s" % folder)
+            run("mkdir -p %s/data" % folder)
+
+            with cd(folder):
+                upload_template(
+                    filename="./.environment",
+                    destination='%s/.environment' % folder,
+                    template_dir="./",
+                )
+                print("---> [.environment] uploaded...!!!")
+
+            if os.path.isfile("docker-compose.yml"):
+                with cd("/apps/%s" % label):
+                    upload_template(
+                        filename="./docker-compose.yml",
+                        destination='/apps/%s/docker-compose.yml' % label,
+                        template_dir="./",
+                    )
+                    run("docker stack deploy --compose-file docker-compose.yml %s --with-registry-auth" % env.label)
+            else:
+                sys.exit("[docker-compose.yml] is required")
+        else:
+            sys.exit("[DEPLOY_CLUSTER] and [DEPLOY_PROJECT] values are required")

@@ -109,7 +109,8 @@ def loadbalancer(create, delete, setup):
 
 @main.command('apps')
 @click.option('--create', '-c', is_flag=True, help='Register an app for deploy in the cluster')
-@click.option('--delete', '-d', is_flag=True, help='Delete an app from de cluster')
+@click.option('--delete', '-r', is_flag=True, help='Delete an app from de cluster')
+@click.option('--deploy', '-d', is_flag=True, help='Deploy an app ')
 def apps(create, delete):
 
     if create:
@@ -146,5 +147,7 @@ def apps(create, delete):
 
     elif delete:
         click.echo('--> DELETE')
+    elif deploy:
+        deploy_app()
     else:
         print(json.dumps(settings["apps"], indent=4, sort_keys=True))
