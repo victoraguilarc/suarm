@@ -231,8 +231,10 @@ class Cluster(object):
         label = env.label
 
         if cluster and label:
-            print("CLUSTER: %s" % cluster)
+            print("---------------------------------")
+            print("MASTER: %s" % cluster)
             print("LABEL: %s" % label)
+            print("---------------------------------")
 
             folder = "/apps/%s" % label
             run("mkdir -p %s" % folder)
@@ -247,8 +249,23 @@ class Cluster(object):
                     )
                     print("---> [.environment] uploaded...!!!")
             else:
-                # Create .environment from env variables
-                pass
+                if env.variables:
+                    print("Exist [DEPLOY_ENVIRONMENT] into your env...")
+                    f = open('/tmp/.tempenv', 'w')
+                    f.write(env.variables)
+                    f.close()
+                    print("[.environment] created...!!!")
+                    with cd(folder):
+                        upload_template(
+                            filename="/tmp/.tempenv",
+                            destination='/apps/%s/.environment' % label,
+                            template_dir="./",
+                        )
+                    local("rm .tmpenv")
+                    print("[.environment] uploaded and configured...")
+
+                else:
+                    print("[DEPLOY_ENVIRONMENT] doesn't into your env...")
 
             if os.path.isfile("docker-compose.yml"):
                 with cd("/apps/%s" % label):

@@ -435,7 +435,7 @@ def deploy_app():
     if mode:
         cluster = os.environ.get('DEPLOY_CLUSTER', None)
         label = os.environ.get('DEPLOY_PROJECT', None)
-        variables = os.environ.get('DEPLOY_ENVIRONMENT', False)
+        env.variables = os.environ.get('DEPLOY_ENVIRONMENT', None)
     else:
         print("------------------------------")
         print(" Development mode")

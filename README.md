@@ -110,6 +110,9 @@ Use the command `suarm cluster --setup-proxy` to install proxy flow base on [Doc
 ## Setup cluster manually
 For setup cluster manually check [Manually docs](COMMANDS.md)
 
+##Execute commands in production
+
+`docker exec -ti [container]  python manage.py createsuperuser`
 
 ## TODOS
   * **manage domains** add domain to the cluster and manage app domains with Cloudflare
