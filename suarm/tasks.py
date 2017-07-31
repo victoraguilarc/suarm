@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 
-import os, sys, re
+import os, sys, re, click
 from fabric.context_managers import lcd, cd, quiet, hide
 from fabric.contrib.files import exists, upload_template
-from fabric.operations import sudo, run, local
+from fabric.operations import sudo, run
 from fabric.state import env
 from fabric.api import settings
 from fabric.tasks import execute
@@ -21,7 +21,7 @@ class Server(object):
         """
         Install all server dependencies.
         """
-        print("\nPreparing...\n")
+        click.echo("\nPreparing...\n")
         if not exists('/etc/haproxy'):
             sudo('apt-get update')
             sudo('apt-get upgrade -y')
@@ -168,7 +168,7 @@ class Cluster(object):
         """
         Install docker registry
         """
-        print("\nREGISTRY\n")
+        click.echo("\nREGISTRY\n")
 
 
     @staticmethod
@@ -176,7 +176,7 @@ class Cluster(object):
         """
         Install docker portainer and vizualizer
         """
-        print("Configuring dashboard...")
+        click.echo("Configuring dashboard...")
         with settings(hide('warnings'), warn_only=True):
             run("mkdir -p /volumes/portainer/data")
             run("docker network create -d overlay portainer")
@@ -197,7 +197,7 @@ class Cluster(object):
             --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
             dockersamples/visualizer")
 
-        print("\nDashboard configured!!!...\n")
+        click.echo("\nDashboard configured!!!...\n")
 
 
     @staticmethod
@@ -205,7 +205,7 @@ class Cluster(object):
         """
         Install docker proxy based on http://dockerflow.com
         """
-        print("Configuring proxy...")
+        click.echo("Configuring proxy...")
         with quiet():
             run("mkdir -p /apps/proxy")
             run("docker network create -d overlay proxy")
@@ -223,7 +223,7 @@ class Cluster(object):
             # hide('warnings', 'running', 'stdout', 'stderr'),
             run("docker stack deploy --compose-file /apps/proxy/proxy.yml proxy")
 
-        print("---> Proxy has been installed... :)")
+        click.echo("---> Proxy has been installed... :)")
 
     @staticmethod
     def deploy_app():
@@ -231,10 +231,10 @@ class Cluster(object):
         label = env.label
 
         if cluster and label:
-            print("---------------------------------")
-            print("MASTER: %s" % cluster)
-            print("LABEL: %s" % label)
-            print("---------------------------------")
+            click.echo("---------------------------------")
+            click.echo("MASTER: %s" % cluster)
+            click.echo("LABEL: %s" % label)
+            click.echo("---------------------------------")
 
             folder = "/apps/%s" % label
             run("mkdir -p %s" % folder)
@@ -247,24 +247,24 @@ class Cluster(object):
                         destination='%s/.environment' % folder,
                         template_dir="./",
                     )
-                    print("---> [.environment] uploaded...!!!")
+                    click.echo("---> [.environment] uploaded...!!!")
             else:
                 if env.variables:
-                    print("Exist [DEPLOY_ENVIRONMENT] into your env...")
+                    click.echo("Exist [DEPLOY_ENVIRONMENT] into your env...")
                     f = open('/tmp/.tempenv', 'w')
                     f.write(env.variables)
                     f.close()
-                    print("[.environment] created...!!!")
+                    click.echo("[.environment] created...!!!")
                     with cd(folder):
                         upload_template(
                             filename="/tmp/.tempenv",
                             destination='/apps/%s/.environment' % label,
                             template_dir="./",
                         )
-                    print("[.environment] uploaded and configured...")
+                    click.echo("[.environment] uploaded and configured...")
 
                 else:
-                    print("[DEPLOY_ENVIRONMENT] doesn't into your env...")
+                    click.echo("[DEPLOY_ENVIRONMENT] doesn't into your env...")
 
             if os.path.isfile("docker-compose.yml"):
                 with cd("/apps/%s" % label):

@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
+import json
 import re
-from .cluster import *
+
+import click
+from suarm.application import deploy_app
+from suarm.cluster import (resize_server, destroy_server, settings, register_sshkey, list_sshkeys, destroy_sshkey,
+                           create_cluster, setup_cluster, destroy_cluster, create_servers, xetup_registry, xetup_proxy,
+                           xetup_dashboard, save_on_config)
 
 
 @click.group(chain=True)
@@ -46,7 +52,6 @@ def keys(create, show, delete):
         list_sshkeys()
 
 
-
 @main.command('cluster')
 @click.option('--create', '-c', is_flag=True, help='Create a Cluster based on swarm.json')
 @click.option('--setup', '-s', is_flag=True, help='Setup nodes [master] and [workers] in the cluster')
@@ -66,7 +71,7 @@ def cluster(create, setup, delete, add_worker, add_manager, setup_registry,
     elif delete:
         destroy_cluster()
     elif add_worker:
-        create_servers(add_node)
+        create_servers(add_worker)
     elif add_manager:
         pass
     elif setup_registry:
@@ -76,7 +81,9 @@ def cluster(create, setup, delete, add_worker, add_manager, setup_registry,
     elif setup_dashboard:
         xetup_dashboard()
     elif restart:
-        restart_cluster()
+        # TODO
+        # restart_cluster()
+        pass
     else:
         click.echo(settings)
 
@@ -100,11 +107,14 @@ def setup(service, subid):
 @click.option('--setup', '-s', is_flag=True, help='Configure the load balancer')
 def loadbalancer(create, delete, setup):
     if create:
-        add_loadbalancer()
+        # TODO Implement for only one server
+        pass
     elif setup:
-        setup_loadbalancer()
+        # TODO Implement for only one server
+        pass
     elif delete:
-        destroy_loadbalancer()
+        # TODO Implement for only one server
+        pass
 
 
 @main.command('apps')
@@ -150,4 +160,4 @@ def apps(create, delete, deploy):
     elif deploy:
         deploy_app()
     else:
-        print(json.dumps(settings["apps"], indent=4, sort_keys=True))
+        click.echo(json.dumps(settings["apps"], indent=4, sort_keys=True))

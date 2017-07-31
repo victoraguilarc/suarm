@@ -8,7 +8,6 @@ from time import sleep
 
 from fabric.state import env
 from fabric.tasks import execute
-from fabric.operations import local
 from .tasks import Server, Cluster
 from .vars import OS, ZONES
 from .errors import *
@@ -135,7 +134,7 @@ def destroy_server(subid, mode="worker"):
         _nodes = []
         for node in nodes:
             if "SUBID" in node and node["SUBID"] != subid:
-                _node.append(node)
+                _nodes.append(node)
 
         settings[mode]["nodes"] = _nodes
         save_on_config(mode, settings[mode])
@@ -412,7 +411,7 @@ def config_env():
 def setup_cluster():
     config_env()
     execute(Cluster.config, hosts=[env.master])
-    setup_dashboard()
+    xetup_dashboard()
     # sed -i -e 's/stable/alpha/g' hello.txt
     # update_engine_client -update
 
@@ -426,32 +425,7 @@ def xetup_dashboard():
     config_env()
     execute(Cluster.dashboard, hosts=[env.master])
 
+
 def xetup_proxy():
     config_env()
     execute(Cluster.proxy, hosts=[env.master])
-
-def deploy_app():
-    mode = os.environ.get('DEPLOY_MODE', False)
-    if mode:
-        cluster = os.environ.get('DEPLOY_CLUSTER', None)
-        label = os.environ.get('DEPLOY_PROJECT', None)
-        env.variables = os.environ.get('DEPLOY_ENVIRONMENT', None)
-    else:
-        print("------------------------------")
-        print(" Development mode")
-        print("------------------------------")
-        if os.path.isfile(".environment"):
-            try:
-                cluster = local("cat .environment | grep DEPLOY_CLUSTER", capture=True).split("=")[1]
-                label = local("cat .environment | grep DEPLOY_PROJECT", capture=True).split("=")[1]
-                env.key_filename = local("cat .environment | grep DEPLOY_SSH_KEY", capture=True).split("=")[1]
-            except Exception as e:
-                sys.exit("[DEPLOY_CLUSTER] and [DEPLOY_PROJECT] and [DEPLOY_SSH_KEY] values are required")
-        else:
-            sys.exit("[.environment] file is required to make a deploy")
-
-    env.user = 'root'
-    env.master = cluster
-    env.label = label
-    env.develop = not mode
-    execute(Cluster.deploy_app, hosts=[env.master])
