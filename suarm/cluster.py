@@ -446,9 +446,12 @@ def deploy_app():
                 label = local("cat .environment | grep DEPLOY_PROJECT", capture=True).split("=")[1]
             except Exception as e:
                 sys.exit("[DEPLOY_CLUSTER] and [DEPLOY_PROJECT] values are required")
+            env.key_filename = 'keys/%s_rsa' % label
         else:
             sys.exit("[.environment] file is required to make a deploy")
 
+
+    env.user = 'root'
     env.master = cluster
     env.label = label
     env.develop = not mode
