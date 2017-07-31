@@ -49,17 +49,17 @@ def config(cfile):
         sys.exit('Valid [swarm.json] file is required!')
         return None
 
+def get_headers(settings):
+    if "api-key" in settings:
+        return {"API-Key": settings["api-key"]}
+    return None
+
 if os.path.isfile(CONFIG_FILE):
     settings = config(CONFIG_FILE)
     headers = get_headers(settings)
 else:
     settings = None
     headers = None
-
-def get_headers(settings):
-    if "api-key" in settings:
-        return {"API-Key": settings["api-key"]}
-    return None
 
 
 def register_ip(subid):
