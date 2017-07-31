@@ -1,31 +1,29 @@
 {
-    "api-key": "",
-    "ssh-key": "",
-    "label": "",
-    "domain": "cluster.xiberty.com",
-    "master": {
-        "zone": 12,
+    "api-key": "<MY_VULTR_API_KEY>",
+    "ssh-key": "<MY_VULTR_GENERATED_SSHKEYID>",
+    "label": "<NAME_FOR_SWARM>",
+    "domain": "<DOMAIN_FOR_SWARM_MASTER>",
+    "email": "<YOUR_EMAIL>",
+    "manager": {
+        "replicas": 1,
+        "zone": "NEW_JERSEY",
         "plan": 201,
-        "os": 179
+        "os": "COREOS",
+        "nodes": []
     },
-    "workers": {
+    "worker": {
         "replicas": 2,
-        "zone": 12,
+        "zone": "NEW_JERSEY",
         "plan": 201,
-        "os": 179
+        "os": "COREOS",
+        "nodes": []
     },
-    "loadbalancer": {
-        "zone": 12,
-        "plan": 201,
-        "os": 215,
-    },
-    "cluster": [],
     "apps": [
         {
-            "name": "app",
-            "domain": "app.xiberty.com",
-            "port": "8000",
-            "https": false
+            "name": "web",
+            "domain": "app1.example.com",
+            "port": 30000,
+            "https": true
         }
     ]
 }

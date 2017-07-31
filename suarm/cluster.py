@@ -412,6 +412,8 @@ def setup_cluster():
     config_env()
     execute(Cluster.config, hosts=[env.master])
     setup_dashboard()
+    # sed -i -e 's/stable/alpha/g' hello.txt
+    # update_engine_client -update
 
 
 def xetup_registry():
@@ -422,12 +424,6 @@ def xetup_registry():
 def xetup_dashboard():
     config_env()
     execute(Cluster.dashboard, hosts=[env.master])
-
-
-def xetup_loadbalancer():
-    config_env()
-    execute(Cluster.loadbalancer, hosts=[env.master])
-
 
 def xetup_proxy():
     config_env()

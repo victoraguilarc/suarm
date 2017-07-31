@@ -54,12 +54,11 @@ def keys(create, show, delete):
 @click.option('--add-worker', '-a', type=int, default=None, help='Add worker to cluster')
 @click.option('--add-manager', '-a', type=int, default=None, help='Add manager to cluster')
 @click.option('--setup-registry', '-sr', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
-@click.option('--setup-loadbalancer', '-sl', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
 @click.option('--setup-proxy', '-sp', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
 @click.option('--setup-dashboard', '-sd', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
 @click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
 def cluster(create, setup, delete, add_worker, add_manager, setup_registry,
-            setup_loadbalancer, setup_proxy, setup_dashboard, restart):
+            setup_proxy, setup_dashboard, restart):
     if create:
         create_cluster()
     elif setup:
@@ -71,8 +70,6 @@ def cluster(create, setup, delete, add_worker, add_manager, setup_registry,
     elif add_manager:
         pass
     elif setup_registry:
-        xetup_registry()
-    elif setup_loadbalancer:
         xetup_registry()
     elif setup_proxy:
         xetup_proxy()

@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import re
-from fabric.context_managers import lcd, cd
+from fabric.context_managers import lcd, cd, quiet, hide
 from fabric.contrib.files import exists, upload_template
 from fabric.operations import sudo, run
 from fabric.state import env
@@ -102,27 +102,6 @@ class Server(object):
         sudo('reboot')
 
 
-    @staticmethod
-    def restart():
-        """
-         Restart haproxy
-        """
-        sudo('service haproxy restart')
-
-    @staticmethod
-    def stop():
-        """
-         Stop haproxy
-        """
-        sudo('service haproxy stop')
-
-    @staticmethod
-    def start():
-        """
-         Start haproxy
-        """
-        sudo('service haproxy start')
-
 class Cluster(object):
 
     @staticmethod
@@ -193,43 +172,55 @@ class Cluster(object):
 
 
     @staticmethod
-    def loadbalancer():
-        """
-        Install docker loadbalancer
-        """
-        print("\LOADBALANCER\n")
-
-
-    @staticmethod
     def dashboard():
         """
         Install docker portainer and vizualizer
         """
-        print("\nConfiguring dashboard...\n")
-        run("mkdir -p /volumes/portainer/data")
-        run("docker network create -d overlay portainer")
-        run("docker service create \
-        --name portainer \
-        --publish 80:9000 \
-        --constraint 'node.role == manager' \
-        --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
-        --mount type=bind,src=/volumes/portainer/data,dst=/data \
-        --network portainer \
-        portainer/portainer \
-        -H unix:///var/run/docker.sock")
+        print("Configuring dashboard...")
+        with settings(hide('warnings'), warn_only=True):
+            run("mkdir -p /volumes/portainer/data")
+            run("docker network create -d overlay portainer")
+            run("docker service create \
+            --name portainer \
+            --publish 9000:9000 \
+            --constraint 'node.role == manager' \
+            --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+            --mount type=bind,src=/volumes/portainer/data,dst=/data \
+            --network portainer \
+            portainer/portainer \
+            -H unix:///var/run/docker.sock")
 
-        run("docker service create \
-        --name=viz \
-        --publish=8080:8080/tcp \
-        --constraint=node.role==manager \
-        --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
-        dockersamples/visualizer")
+            run("docker service create \
+            --name=viz \
+            --publish=8000:8080/tcp \
+            --constraint=node.role==manager \
+            --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+            dockersamples/visualizer")
+
         print("\nDashboard configured!!!...\n")
 
 
     @staticmethod
     def proxy():
         """
-        Install docker registry
+        Install docker proxy based on http://dockerflow.com
         """
-        print("\nPROXY\n")
+        print("Configuring proxy...")
+        with quiet():
+            run("mkdir -p /apps/proxy")
+            run("docker network create -d overlay proxy")
+            with lcd("tmpl"):
+                with cd('/apps/proxy/'):
+                    upload_template(
+                        filename="proxy.yml",
+                        destination='/apps/proxy/proxy.yml',
+                        template_dir="./",
+                        use_sudo=True,
+                    )
+
+        with settings(hide('warnings'), warn_only=True):
+            # run("docker network ls | grep proxy | awk '{print $1}' | xargs docker network rm")
+            # hide('warnings', 'running', 'stdout', 'stderr'),
+            run("docker stack deploy --compose-file /apps/proxy/proxy.yml proxy")
+
+        print("---> Proxy has been installed... :)")
