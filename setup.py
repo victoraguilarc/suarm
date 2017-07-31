@@ -28,7 +28,7 @@ class PyTest(TestCommand):
 
 setup(
     name="suarm",
-    version='0.0.3',
+    version='0.0.4',
     description="CLI tools dor docker swarm deployment",
     long_description="\n\n".join([open("README.md").read()]),
     license='MIT',
