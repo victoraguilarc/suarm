@@ -444,12 +444,11 @@ def deploy_app():
             try:
                 cluster = local("cat .environment | grep DEPLOY_CLUSTER", capture=True).split("=")[1]
                 label = local("cat .environment | grep DEPLOY_PROJECT", capture=True).split("=")[1]
+                env.key_filename = local("cat .environment | grep DEPLOY_SSH_KEY", capture=True).split("=")[1]
             except Exception as e:
-                sys.exit("[DEPLOY_CLUSTER] and [DEPLOY_PROJECT] values are required")
-            env.key_filename = 'keys/%s_rsa' % label
+                sys.exit("[DEPLOY_CLUSTER] and [DEPLOY_PROJECT] and [DEPLOY_SSH_KEY] values are required")
         else:
             sys.exit("[.environment] file is required to make a deploy")
-
 
     env.user = 'root'
     env.master = cluster
