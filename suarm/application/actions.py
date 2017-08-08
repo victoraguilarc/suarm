@@ -4,7 +4,8 @@ import sys
 from fabric.operations import local
 from fabric.state import env
 from fabric.tasks import execute
-from suarm.tasks import Cluster
+
+from suarm.cluster.tasks import Cluster
 
 
 def deploy_app():

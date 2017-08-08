@@ -10,7 +10,7 @@ from fabric.tasks import execute
 
 from suarm.cluster.actions import settings, create_server, SLEEP_TIME, register_ip, save_on_config, API_ENDPOINT, \
     DESTROY_SERVER, headers, config_env
-from suarm.server.config import set_user, _upload_key
+from suarm.server.config import set_user, _upload_key, set_stage
 from suarm.server.project import Project
 from suarm.server.server import Server
 
@@ -69,7 +69,7 @@ def del_node(tag):
 def setup_loadbalancer():
     if "loadbalancer" in settings and "ipv4" in settings["loadbalancer"]:
         config_env()
-        execute(Server.install, hosts=[settings["loadbalancer"]["ipv4"]])
+        execute(Server.deps, hosts=[settings["loadbalancer"]["ipv4"]])
         execute(Server.haproxy, hosts=[settings["loadbalancer"]["ipv4"]])
         execute(Server.letsencrypt, hosts=[settings["loadbalancer"]["ipv4"]])
         execute(Server.reboot, hosts=[settings["loadbalancer"]["ipv4"]])
@@ -87,28 +87,28 @@ def setup_server(stage="production"):
     """
     Install app in selected server(s).
     """
-
+    set_stage(stage)
     set_user(superuser=True)
-    with settings(hide('warnings'), warn_only=True, ):
-        execute(Server.deps, hosts=env.hosts)
-        execute(Server.user, hosts=env.hosts)
-        execute(Server.group, hosts=env.hosts)
-        execute(Server.create_db, hosts=env.hosts)
-        execute(Server.git, hosts=env.hosts)
-        execute(Server.add_remote, hosts=env.hosts)
-        execute(Server.nginx, hosts=env.hosts)
-        execute(Server.gunicorn, hosts=env.hosts)
-        execute(Server.supervisor, hosts=env.hosts)
-        execute(Server.letsencrypt, hosts=env.hosts)
-        execute(Server.var, hosts=env.hosts)
-        execute(Server.pip_cache, hosts=env.hosts)
-        execute(Server.fix_permissions, hosts=env.hosts)
+    execute(Server.deps, hosts=env.hosts)
+    execute(Server.user, hosts=env.hosts)
+    execute(Server.group, hosts=env.hosts)
+    execute(Server.create_db, hosts=env.hosts)
+    execute(Server.git, hosts=env.hosts)
+    execute(Server.add_remote, hosts=env.hosts)
+    execute(Server.web_server, hosts=env.hosts)
+    execute(Server.gunicorn, hosts=env.hosts)
+    execute(Server.supervisor, hosts=env.hosts)
+    execute(Server.letsencrypt, hosts=env.hosts)
+    execute(Server.var, hosts=env.hosts)
+    execute(Server.pip_cache, hosts=env.hosts)
+    execute(Server.fix_permissions, hosts=env.hosts)
 
 
 def clean_server(stage="production"):
     """
     Uninstall app in selected server(s)
     """
+    set_stage(stage)
     set_user(superuser=True)
     with settings(hide('warnings'), warn_only=True, ):
         execute(Server.clean, hosts=env.hosts)
@@ -118,6 +118,7 @@ def restart_server(stage="production"):
     """
     Restart all app services.
     """
+    set_stage(stage)
     set_user(superuser=True)
     with settings(hide('warnings'), warn_only=True, ):
         execute(Server.restart_services, hosts=env.hosts)
@@ -135,6 +136,7 @@ def deploy_django_application(stage="production"):
     """
     Deploy application in selected server(s)
     """
+    set_stage(stage)
     set_user()
     with settings(hide('warnings'), warn_only=True, ):
         execute(Project.push, hosts=env.hosts)
@@ -147,32 +149,36 @@ def fix_permissions(stage="production"):
     """
     Add project repo url to local git configuration.
     """
+    set_stage(stage)
     set_user(superuser=True)
     with settings(hide('warnings'), warn_only=True, ):
         execute(Server.fix_permissions, hosts=env.hosts)
 
 
-def add_remote(stage="production"):
+def add_remote_server(stage="production"):
     """
     Add project repo url to local git configuration.
     """
+    set_stage(stage)
     with settings(hide('warnings'), warn_only=True, ):
         execute(Server.add_remote, hosts=env.hosts)
 
 
-def upload_key(stage="production"):
+def upload_key_to_server(stage="production"):
     """
     Upload SSH key to server.
     """
+    set_stage(stage)
     set_user()
     with settings(hide('warnings'), warn_only=True, ):
         execute(_upload_key, hosts=env.hosts)
 
 
-def reset_db(stage="production"):
+def reset_database(stage="production"):
     """
     Reset the env Database
     """
+    set_stage(stage)
     reset = prompt("Reset Database, Are you sure? (y/N)", default="N")
 
     if reset == 'y' or reset == 'Y':
@@ -181,10 +187,11 @@ def reset_db(stage="production"):
             execute(Server.reset_db, hosts=env.hosts)
 
 
-def reset_env(stage="production"):
+def reset_environment(stage="production"):
     """
     Reset the python env
     """
+    set_stage(stage)
     reset = prompt("Reset Database, Are you sure? (y/N)", default="N")
 
     if reset == 'y' or reset == 'Y':
@@ -197,18 +204,20 @@ def createsuperuser(stage="production"):
     """
     Create a project superuser in selected server(s).
     """
+    set_stage(stage)
     set_user(superuser=True)
     with settings(hide('warnings'), warn_only=True, ):
         execute(Project.create_superuser, hosts=env.hosts)
 
 
-def setup_language():
+def setup_server_language():
     local("echo \"export LANG=C.UTF-8\" >> ~/.bash_profile")
     local("echo \"export LC_CTYPE=C.UTF-8\" >> ~/.bash_profile")
     local("echo \"export LC_ALL=C.UTF-8\" >> ~/.bash_profile")
 
 
-def renew_certificates(stage="production"):
+def renew_ssl_certificates(stage="production"):
+    set_stage(stage)
     set_user(superuser=True)
     pass
     # with settings(hide('warnings'), warn_only=True, ):

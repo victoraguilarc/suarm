@@ -4,6 +4,8 @@ import json
 from getpass import getpass
 
 import sys
+
+import os
 from fabric.operations import local, prompt
 from fabric.state import env
 
@@ -15,7 +17,7 @@ CONFIG_FILE = "django.json"
 HOME_PATH = "/webapps"
 
 DB_MYSQL = "mysql"
-DB_POSTGRESQL = "postgresql"
+DB_POSTGRESQL = "postgres"
 
 WS_NGINX = "nginx"
 WS_APACHE = "apache"
@@ -26,6 +28,7 @@ def config(cfile=CONFIG_FILE):
         config_file = open(cfile, 'r')
         return json.load(config_file)
     except Exception as e:
+        print(e)
         sys.exit('Valid [django.json] file is required!')
 
 servers = config()
@@ -91,7 +94,7 @@ def _upload_key():
         raise Exception('Unfulfilled local requirements')
 
 
-def set_stage(stage='develop'):
+def set_stage(stage='production'):
     if stage in servers.keys():
         env.stage = stage
         env.project = get_value(env.stage, "project")
@@ -110,10 +113,10 @@ def set_stage(stage='develop'):
 def set_user(superuser=False):
     if superuser:
         env.user = username = get_value(env.stage, "superuser", default="root")
-        if has_key(env.stage, "key_filename"):
+        if has_key(env.stage, "key_filename") and os.path.isfile(get_value(env.stage, "key_filename", default=None)):
             env.key_filename = servers[env.stage]["key_filename"]
         else:
-            env.password = getpass("Put password for [%s]" % username)
+            env.password = getpass("Put password for [%s]: " % username)
             if len(env.password) == 0:
                 sys.exit("[superuser] password is needed to make server configurations")
     else:

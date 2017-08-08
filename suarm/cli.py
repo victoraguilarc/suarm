@@ -10,8 +10,12 @@ from suarm.cluster.actions import (
     destroy_cluster, create_servers, xetup_registry, xetup_proxy,
     xetup_dashboard, save_on_config
 )
-from suarm.server.actions import setup_server, clean_server, view_servers, restart_server, deploy_django_application, \
-    fix_permissions, add_remote, upload_key, reset_db, reset_env, createsuperuser, renew_certificates
+from suarm.server.actions import (
+    setup_server, clean_server, view_servers,
+    restart_server, deploy_django_application,
+    fix_permissions, add_remote_server, upload_key_to_server,
+    reset_database, reset_environment, renew_ssl_certificates,
+    createsuperuser)
 
 
 @click.group(chain=True)
@@ -169,7 +173,7 @@ def service(create, delete, deploy):
 
 
 @main.command('server')
-@click.option('--list', '-l', is_flag=True, help='List servers in your vultr account')
+@click.option('--listing', '-l', is_flag=True, help='List servers in your vultr account')
 @click.option('--setup', '-i', is_flag=True, help='Install and configure a server for')
 @click.option('--clean', '-c', is_flag=True, help='Clean ans uninstall dependencies for ')
 @click.option('--deploy', '-d', is_flag=True, help='Deploy current folder django app')
@@ -182,35 +186,42 @@ def service(create, delete, deploy):
 @click.option('--create-superuser', '-cs', is_flag=True, help='Create a superuser')
 @click.option('--renew-certificates', '-rw', is_flag=True, help='Renew SSL Certificates')
 @click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
-def server(_list, _setup, _clean, _deploy, _stage, _fix_perms, _add_remote,
-           _upload_key, _reset_db, _reset_env, _create_superuser, _renew_certificates, _restart):
-    if _list:
+def server(listing, setup, clean, deploy, stage, fix_perms, add_remote, upload_keyfile,
+           reset_db, reset_env, create_superuser, renew_certificates, restart):
+    if listing:
+        print("\nLIST SERVERS\n")
         view_servers()
-    elif _setup:
-        setup_server(stage=_stage)
-    elif _clean:
-        clean_server(stage=_stage)
-    elif _deploy:
-        deploy_django_application(stage=_stage)
-    elif _fix_perms:
-        fix_permissions(stage=_stage)
-    elif _add_remote:
-        add_remote(stage=_stage)
-    elif _upload_key:
-        upload_key(stage=_stage)
-    elif _reset_db:
-        reset_db(stage=_stage)
-    elif _reset_env:
-        reset_env(stage=_stage)
-    elif _create_superuser:
-        createsuperuser(stage=_stage)
-    elif _renew_certificates:
-        renew_certificates(stage=_stage)
-
-
-
-    elif _restart:
-        restart_server(stage=_stage)
-
+    elif setup:
+        print("\nSETUP [%s] SERVER\n" % stage)
+        setup_server(stage=stage)
+    elif clean:
+        print("\nCLEAN [%s] SERVER\n" % stage)
+        clean_server(stage=stage)
+    elif deploy:
+        print("\nDEPLOY APP INTO [%s]\n" % stage)
+        deploy_django_application(stage=stage)
+    elif fix_perms:
+        print("\nFIX PERMISSIONS [%s] SERVER\n" % stage)
+        fix_permissions(stage=stage)
+    elif add_remote:
+        print("\nADD REMOTE [%s] SERVER\n" % stage)
+        add_remote_server(stage=stage)
+    elif upload_keyfile:
+        print("\nUPLOAD [%s] SERVER\n" % stage)
+        upload_key_to_server(stage=stage)
+    elif reset_db:
+        print("\nRESET DB INTO [%s]\n" % stage)
+        reset_database(stage=stage)
+    elif reset_env:
+        print("\nRESET ENV [%s] SERVER\n" % stage)
+        reset_environment(stage=stage)
+    elif create_superuser:
+        print("\nCREATE SUPERUSER IN [%s] SERVER\n" % stage)
+        createsuperuser(stage=stage)
+    elif renew_certificates:
+        print("\nRENEW CERTIFICATES\n" % stage)
+        renew_ssl_certificates(stage=stage)
+    elif restart:
+        restart_server(stage=stage)
     else:
         click.echo(settings)

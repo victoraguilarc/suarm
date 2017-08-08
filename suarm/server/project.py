@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from fabric.api import *
 from fabric.contrib.files import upload_template
 
-from tools.tasks.config import *
+from suarm.server.config import get_project_src, make_user
 
 
 class Project(object):
@@ -109,8 +109,4 @@ class Project(object):
 
     @staticmethod
     def backup_files():
-        pass
-
-    @staticmethod
-    def tests():
         pass

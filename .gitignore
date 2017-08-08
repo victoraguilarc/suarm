@@ -12,4 +12,5 @@ htmlcov/
 env/
 __pycache__
 swarm.json
+django.json
 keys/

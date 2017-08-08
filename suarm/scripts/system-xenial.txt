@@ -12,11 +12,6 @@ python-virtualenv
 ## Pillow, pylibmc
 zlib1g-dev
 
-## POSTGRESQL AND psycopg2 DEPENDENCIES
-postgresql
-postgresql-contrib
-libpq-dev
-
 ## VERSIONING
 git
 
