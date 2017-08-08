@@ -6,7 +6,7 @@ from fabric.contrib.files import exists, upload_template
 from fabric.operations import sudo, run, local
 from fabric.state import env
 
-from suarm.server.config import (
+from ..server.config import (
     get_value, DB_POSTGRESQL, DB_MYSQL, WS_NGINX,
     WS_APACHE, make_user, get_user_home, HOME_PATH,
     make_team, make_app, get_project_path, get_project_src

@@ -8,11 +8,11 @@ from fabric.operations import local
 from fabric.state import env
 from fabric.tasks import execute
 
-from suarm.cluster.actions import settings, create_server, SLEEP_TIME, register_ip, save_on_config, API_ENDPOINT, \
+from ..cluster.actions import settings, create_server, SLEEP_TIME, register_ip, save_on_config, API_ENDPOINT, \
     DESTROY_SERVER, headers, config_env
-from suarm.server.config import set_user, _upload_key, set_stage
-from suarm.server.project import Project
-from suarm.server.server import Server
+from ..server.config import set_user, _upload_key, set_stage
+from ..server.project import Project
+from ..server.server import Server
 
 
 def add_node(tag, plan=201, oss="COREOS", zone="SILICON_VALLEY"):

@@ -9,7 +9,7 @@ from time import sleep
 from fabric.state import env
 from fabric.tasks import execute
 
-from suarm.errors import valid_int
+from ..errors import valid_int
 from .tasks import Cluster
 from .vars import OS, ZONES
 

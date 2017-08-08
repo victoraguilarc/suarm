@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from fabric.api import *
 from fabric.contrib.files import upload_template
 
-from suarm.server.config import get_project_src, make_user
+from ..server.config import get_project_src, make_user
 
 
 class Project(object):

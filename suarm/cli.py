@@ -3,14 +3,14 @@ import json
 import re
 
 import click
-from suarm.application.actions import deploy_app
-from suarm.cluster.actions import (
+from .application.actions import deploy_app
+from .cluster.actions import (
     resize_server, destroy_server, settings, register_sshkey,
     list_sshkeys, destroy_sshkey, create_cluster, setup_cluster,
     destroy_cluster, create_servers, xetup_registry, xetup_proxy,
     xetup_dashboard, save_on_config
 )
-from suarm.server.actions import (
+from .server.actions import (
     setup_server, clean_server, view_servers,
     restart_server, deploy_django_application,
     fix_permissions, add_remote_server, upload_key_to_server,
