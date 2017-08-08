@@ -2,7 +2,7 @@
 import sys
 
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 requires = [
@@ -39,7 +39,8 @@ setup(
     author="Victor Aguilar C.",
     author_email="victor@xiberty.com",
     url="https://suarm.readthedocs.org",
-    packages=['suarm'],
+    packages=find_packages(),
+    include_package_data=True,
     install_requires=requires,
     entry_points={'console_scripts': [
         'suarm = suarm.cli:main']},
