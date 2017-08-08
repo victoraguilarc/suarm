@@ -3,10 +3,15 @@ import json
 import re
 
 import click
-from suarm.application import deploy_app
-from suarm.cluster import (resize_server, destroy_server, settings, register_sshkey, list_sshkeys, destroy_sshkey,
-                           create_cluster, setup_cluster, destroy_cluster, create_servers, xetup_registry, xetup_proxy,
-                           xetup_dashboard, save_on_config)
+from suarm.application.actions import deploy_app
+from suarm.cluster.actions import (
+    resize_server, destroy_server, settings, register_sshkey,
+    list_sshkeys, destroy_sshkey, create_cluster, setup_cluster,
+    destroy_cluster, create_servers, xetup_registry, xetup_proxy,
+    xetup_dashboard, save_on_config
+)
+from suarm.server.actions import setup_server, clean_server, view_servers, restart_server, deploy_django_application, \
+    fix_permissions, add_remote, upload_key, reset_db, reset_env, createsuperuser, renew_certificates
 
 
 @click.group(chain=True)
@@ -117,11 +122,11 @@ def loadbalancer(create, delete, setup):
         pass
 
 
-@main.command('apps')
+@main.command('service')
 @click.option('--create', '-c', is_flag=True, help='Register an app for deploy in the cluster')
 @click.option('--delete', '-r', is_flag=True, help='Delete an app from de cluster')
 @click.option('--deploy', '-d', is_flag=True, help='Deploy an app ')
-def apps(create, delete, deploy):
+def service(create, delete, deploy):
 
     if create:
         click.echo('\n--> Registering new app :)\n')
@@ -161,3 +166,51 @@ def apps(create, delete, deploy):
         deploy_app()
     else:
         click.echo(json.dumps(settings["apps"], indent=4, sort_keys=True))
+
+
+@main.command('server')
+@click.option('--list', '-l', is_flag=True, help='List servers in your vultr account')
+@click.option('--setup', '-i', is_flag=True, help='Install and configure a server for')
+@click.option('--clean', '-c', is_flag=True, help='Clean ans uninstall dependencies for ')
+@click.option('--deploy', '-d', is_flag=True, help='Deploy current folder django app')
+@click.option('--stage', '-s', type=str, default="production", help='Setup stage for django application')
+@click.option('--fix-perms', '-fp', is_flag=True, help='Fix permissions for rpoject files in the server')
+@click.option('--add-remote', '-ar', is_flag=True, help='Add remote git repo to local')
+@click.option('--upload-keyfile', '-uk', is_flag=True, help='register your keyfile in your server if this allow it')
+@click.option('--reset-db', '-rdb', is_flag=True, help='Reset Database')
+@click.option('--reset-env', '-re', is_flag=True, help='Reset python project environment')
+@click.option('--create-superuser', '-cs', is_flag=True, help='Create a superuser')
+@click.option('--renew-certificates', '-rw', is_flag=True, help='Renew SSL Certificates')
+@click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
+def server(_list, _setup, _clean, _deploy, _stage, _fix_perms, _add_remote,
+           _upload_key, _reset_db, _reset_env, _create_superuser, _renew_certificates, _restart):
+    if _list:
+        view_servers()
+    elif _setup:
+        setup_server(stage=_stage)
+    elif _clean:
+        clean_server(stage=_stage)
+    elif _deploy:
+        deploy_django_application(stage=_stage)
+    elif _fix_perms:
+        fix_permissions(stage=_stage)
+    elif _add_remote:
+        add_remote(stage=_stage)
+    elif _upload_key:
+        upload_key(stage=_stage)
+    elif _reset_db:
+        reset_db(stage=_stage)
+    elif _reset_env:
+        reset_env(stage=_stage)
+    elif _create_superuser:
+        createsuperuser(stage=_stage)
+    elif _renew_certificates:
+        renew_certificates(stage=_stage)
+
+
+
+    elif _restart:
+        restart_server(stage=_stage)
+
+    else:
+        click.echo(settings)

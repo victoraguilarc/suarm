@@ -1,0 +1,41 @@
+##basic build dependencies of various Django apps for Ubuntu Xenial 16.04
+# build-essential metapackage install: make, gcc, g++,
+build-essential
+
+## REQUIRED TO TRANSLATE
+gettext
+python3-dev
+python-pip
+python-virtualenv
+
+## SHARED DEPENDENCIES OF:
+## Pillow, pylibmc
+zlib1g-dev
+
+## POSTGRESQL AND psycopg2 DEPENDENCIES
+postgresql
+postgresql-contrib
+libpq-dev
+
+## VERSIONING
+git
+
+## WEB SERVER
+nginx
+
+## PS MONITOR
+supervisor
+
+## Pillow DEPENDENCIES
+libtiff5-dev
+libjpeg8-dev
+libfreetype6-dev
+liblcms2-dev
+libwebp-dev
+
+## django-extensions DEPENDENCIES
+graphviz-dev
+
+## To Read JSON
+jq
+

@@ -1,0 +1,2 @@
+#!/bin/sh
+GIT_WORK_TREE=%(project_path)s git checkout -f

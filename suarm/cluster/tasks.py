@@ -14,94 +14,6 @@ except ImportError:
     from io import StringIO
 
 
-class Server(object):
-
-    @staticmethod
-    def install():
-        """
-        Install all server dependencies.
-        """
-        click.echo("\nPreparing...\n")
-        if not exists('/etc/haproxy'):
-            sudo('apt-get update')
-            sudo('apt-get upgrade -y')
-            sudo('apt-get install -y haproxy')
-            sudo('apt-get install -y software-properties-common')
-            sudo('add-apt-repository ppa:certbot/certbot')
-            sudo('apt-get update')
-            sudo('apt-get install -y certbot')
-
-
-    @staticmethod
-    def haproxy():
-        """
-        1. Build and Upload haproxy config
-        2. Restart haproxy
-        """
-        # nginx remove default config
-        if exists('/etc/haproxy/haproxy.cfg'):
-            sudo('rm /etc/haproxy/haproxy.cfg')
-
-        # Main domain configuration
-        with lcd("tmpl"):
-            with cd('/etc/haproxy/'):
-                upload_template(
-                    filename="haproxy.cfg",
-                    destination='/etc/haproxy/haproxy.cfg',
-                    template_dir="./",
-                    context={
-                        "admin": {"username": "admin", "password": "1029384756"},
-                        "apps": env.apps,
-                        "cluster": env.cluster
-                    },
-                    use_jinja=True,
-                    use_sudo=True,
-                )
-
-    @staticmethod
-    def letsencrypt():
-        """
-        1. Obtain certificates for apps
-        2. Setting Up autorenew logic
-        """
-        sudo("mkdir -p /etc/haproxy/certs")
-        for app in env.apps:
-            sudo("certbot certonly --standalone -d %(domain)s \
-            -m %(email)s -n --agree-tos" % app)
-            sudo("bash -c 'cat /etc/letsencrypt/live/%(domain)s/fullchain.pem \
-            /etc/letsencrypt/live/%(domain)s/privkey.pem > /etc/haproxy/certs/%(domain)s.pem'" % app)
-        sudo("chmod -R go-rwx /etc/haproxy/certs")
-
-        # Copy renew.sh for cronjob
-        with lcd("tmpl"):
-            with cd('/usr/local/bin/'):
-                upload_template(
-                    filename="renew.sh",
-                    destination='/usr/local/bin/renew.sh',
-                    template_dir="./",
-                    context={
-                        "apps": env.apps,
-                        "cluster": env.cluster
-                    },
-                    use_jinja=True,
-                    use_sudo=True,
-                )
-        sudo("chmod u+x /usr/local/bin/renew.sh")
-        sudo("/usr/local/bin/renew.sh")
-        sudo("certbot renew")
-        repetition = '30 2 * * *'
-        cmd = '/usr/bin/certbot renew --renew-hook \"/usr/local/bin/renew.sh\" >> /var/log/le-renewal.log'
-        run('crontab -l | grep -v "%s"  | crontab -' % cmd)
-        run('crontab -l | { cat; echo "%s %s"; } | crontab -' % (repetition, cmd))
-
-    @staticmethod
-    def reboot():
-        """
-         Restart haproxy
-        """
-        sudo('reboot')
-
-
 class Cluster(object):
 
     @staticmethod
@@ -162,14 +74,12 @@ class Cluster(object):
                 env.hosts = env.workers
                 execute(Cluster.workers, hosts=env.workers)
 
-
     @staticmethod
     def registry():
         """
         Install docker registry
         """
         click.echo("\nREGISTRY\n")
-
 
     @staticmethod
     def dashboard():
@@ -199,7 +109,6 @@ class Cluster(object):
 
         click.echo("\nDashboard configured!!!...\n")
 
-
     @staticmethod
     def proxy():
         """
@@ -209,10 +118,10 @@ class Cluster(object):
         with quiet():
             run("mkdir -p /apps/proxy")
             run("docker network create -d overlay proxy")
-            with lcd("tmpl"):
+            with lcd("suarm/tmpl"):
                 with cd('/apps/proxy/'):
                     upload_template(
-                        filename="proxy.yml",
+                        filename="swarm_proxy.yml",
                         destination='/apps/proxy/proxy.yml',
                         template_dir="./",
                         use_sudo=True,

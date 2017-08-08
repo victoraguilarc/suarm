@@ -1,0 +1,26 @@
+{
+    "production": {
+        "project": "app_name",
+        "ipv4": "0.0.0.0",
+        "key_filename": "keys/id_rsa.pub",
+        "domain": "app.xiberty.com",
+        "urls": "app.xiberty.com",
+        "superuser": "vic",
+        "password": "project_password",
+        "db_engine": "postgres|mysql",
+        "web_server": "nginx|apache",
+        "https": false
+    },
+    "development": {
+        "project": "",
+        "ipv4": "",
+        "key_filename": "",
+        "domain": "",
+        "urls": "",
+        "superuser": "",
+        "password": "",
+        "db_engine": "",
+        "web_server": "",
+        "https": false
+    }
+}

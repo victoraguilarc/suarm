@@ -8,9 +8,10 @@ from time import sleep
 
 from fabric.state import env
 from fabric.tasks import execute
-from .tasks import Server, Cluster
+
+from suarm.errors import valid_int
+from .tasks import Cluster
 from .vars import OS, ZONES
-from .errors import *
 
 
 API_ENDPOINT = "https://api.vultr.com"
@@ -29,6 +30,8 @@ SLEEP_TIME = 15
 
 # SETTINGS
 # --------------------
+
+
 def config(cfile):
     try:
         config_file = open(cfile, 'r')
@@ -44,10 +47,9 @@ def config(cfile):
             return settings
         else:
             sys.exit('Valid [swarm.json] file is required!')
-            return None
     except Exception as e:
         sys.exit('Valid [swarm.json] file is required!')
-        return None
+
 
 def get_headers(settings):
     if "api-key" in settings:
@@ -73,6 +75,7 @@ def register_ip(subid):
     else:
         click.echo(req.text)
         return None
+
 
 def create_server(zone, plan, oss, label, mode="worker"):
     """
@@ -343,42 +346,11 @@ def list_sshkeys():
     else:
         click.echo("\n--> ERROR: %s " % req.text)
 
-def setup_workers():
-    nodes = env.nodes
-
-    if len(nodes) == 0:
-        sys.exit('\n-----\n You need configure a cluster WORKERS first')
-
-    index = 0
-    for node in nodes:
-        env.ipv4 = node["ipv4"]
-        execute(Cluster.worker, hosts=[env.ipv4])
-
-
-def setup_managers():
-    nodes = env.nodes
-
-    if len(nodes) == 0:
-        sys.exit('\n-----\n You need configure a cluster MANAGERS first')
-
-    if len(nodes) == 1:
-        env.ipv4 = nodes[0]["ipv4"]
-        execute(Cluster.manager_primary, hosts=[env.ipv4])
-    else:
-        index = 0
-        for node in nodes:
-            env.ipv4 = node["ipv4"]
-            if index == 0:
-                execute(Cluster.manager_primary, hosts=[env.ipv4])
-            else:
-                execute(Cluster.manager_secondary, hosts=[env.ipv4])
-            index += 1
 
 def config_env():
     env.user = 'root'
     env.key_filename = 'keys/%s_rsa' % settings["label"]
     env.apps = settings["apps"]
-
 
     workers = settings["worker"]["nodes"]
     _workers = []
