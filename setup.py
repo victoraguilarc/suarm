@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 
+import os
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 
@@ -11,6 +12,9 @@ requires = [
     'Jinja2==2.9.6'
 ]
 tests_require = ['pytest', 'pytest-cache', 'pytest-cov']
+
+
+os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 
 class PyTest(TestCommand):
