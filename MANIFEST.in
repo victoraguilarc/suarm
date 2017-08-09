@@ -1,2 +1,5 @@
 include README.rst LICENSE
+include suarm/scripts/*
+include suarm/tmpl/*
+
 prune *.pyc

@@ -5,13 +5,11 @@
 # 3. Restart haproxy
 
 echo "\n-------------------------------------------------------------------------------"
-echo " Making certificates for Haproxy :)"
+echo " Making certificates for WebServer :)"
 echo "-------------------------------------------------------------------------------"
-{% for app in apps %}
-cd /etc/letsencrypt/live/{{app['domain']}}
-cat fullchain.pem privkey.pem > /etc/haproxy/certs/{{app['domain']}}.pem
-echo ">> [{{app['domain']}}] .... OK"
-{% endfor %}
+cd /etc/letsencrypt/live/%(domain)s
+cat /etc/letsencrypt/live/%(domain)s/fullchain.pem /etc/letsencrypt/live/%(domain)s/privkey.pem > /etc/haproxy/certs/%(domain)s.pem
+echo ">> [%(domain)s] .... OK"
 echo "-------------------------------------------------------------------------------"
 
-service haproxy reload
+service %(service) reload

@@ -1,16 +1,16 @@
 #!/bin/bash
 
-APP_NAME={{project_name}}                              # Application Name
+APP_NAME=%(project_name)s                              # Application Name
 
-PROJECT_PATH={{project_path}}                          # Project path
+PROJECT_PATH=%(project_path)s                          # Project path
 PYTHON_ENV=${PROJECT_PATH}/env                           # Virtual environment path
 
 SOCKET_PATH=/tmp                                       # Root socket path
 SOCKET_FILE=${SOCKET_PATH}/${APP_NAME}.socket              # Socket file path
 
 
-USER={{app_user}}                                      # Application user
-GROUP={{app_group}}
+USER=%(app_user)s                                      # Application user
+GROUP=%(app_group)s
 NUM_WORKERS=3                                          # workers CPUs*2+1
 
 DJANGO_SETTINGS_MODULE=config.settings.production      # Settings to production mode

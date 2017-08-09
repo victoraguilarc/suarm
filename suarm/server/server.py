@@ -1,10 +1,12 @@
 from __future__ import unicode_literals
 
 import click
-from fabric.context_managers import lcd, cd, settings
+from fabric.context_managers import cd, settings, hide
 from fabric.contrib.files import exists, upload_template
 from fabric.operations import sudo, run, local
 from fabric.state import env
+from pkg_resources import Requirement as req, resource_filename, Requirement
+from pkg_resources import resource_filename as src
 
 from ..server.config import (
     get_value, DB_POSTGRESQL, DB_MYSQL, WS_NGINX,
@@ -22,7 +24,8 @@ class Server(object):
         """
         print("\nInstalling [project] dependencies...\n")
         distro = run("lsb_release -sc", shell=True)
-        deps_file = "suarm/scripts/system-%s.txt" % distro
+        deps_file = src(req.parse("suarm"), "suarm/scripts/system-%s.txt" % distro)
+
         pkgs = local("grep -vE '^\s*\#' %s  | tr '\n' ' '" % deps_file, capture=True)
         sudo("apt-get install -y %s" % pkgs)
 
@@ -64,20 +67,17 @@ class Server(object):
             sudo('rm /etc/haproxy/haproxy.cfg')
 
         # Main domain configuration
-        with lcd("tmpl"):
-            with cd('/etc/haproxy/'):
-                upload_template(
-                    filename="haproxy.cfg",
-                    destination='/etc/haproxy/haproxy.cfg',
-                    template_dir="./",
-                    context={
-                        "admin": {"username": "admin", "password": "1029384756"},
-                        "apps": env.apps,
-                        "cluster": env.cluster
-                    },
-                    use_jinja=True,
-                    use_sudo=True,
-                )
+        with cd('/etc/haproxy/'):
+            upload_template(
+                filename=src(req.parse("suarm"), "suarm/tmpl/haproxy.cfg"),
+                destination='/etc/haproxy/haproxy.cfg',
+                context={
+                    "admin": {"username": "admin", "password": "1029384756"},
+                    "apps": env.apps,
+                    "cluster": env.cluster
+                },
+                use_sudo=True,
+            )
 
     @staticmethod
     def letsencrypt():
@@ -85,37 +85,45 @@ class Server(object):
         1. Obtain certificates for apps
         2. Setting Up autorenew logic
         """
-        if get_value(env.stage, "https", default=False):
-            sudo("mkdir -p /etc/haproxy/certs")
-            for app in env.apps:
-                sudo("certbot certonly --standalone -d %(domain)s \
-                -m %(email)s -n --agree-tos" % app)
-                sudo("bash -c 'cat /etc/letsencrypt/live/%(domain)s/fullchain.pem \
-                /etc/letsencrypt/live/%(domain)s/privkey.pem > /etc/haproxy/certs/%(domain)s.pem'" % app)
-            sudo("chmod -R go-rwx /etc/haproxy/certs")
+        with settings(hide('warnings'), warn_only=True):
+            if env.https:
+                # sudo("mkdir -p /etc/haproxy/certs")
 
-            # Copy renew.sh for cronjob
-            with lcd("suarm/tmpl"):
+                sudo("certbot certonly --standalone -d %(domain)s \
+                -m %(email)s -n --agree-tos" % {
+                    "domain": env.domain,
+                    "email": env.email,
+                })
+                sudo("bash -c 'cat /etc/letsencrypt/live/%(domain)s/fullchain.pem \
+                /etc/letsencrypt/live/%(domain)s/privkey.pem > /etc/haproxy/certs/%(domain)s.pem'" % {
+                    "domain": env.domain,
+                })
+
+                sudo("chmod -R go-rwx /etc/letsencrypt/live/%(domain)s" % {
+                    "domain": env.domain,
+                })
+
+                # Copy renew.sh for cronjob
+                renew_name = "renew_%s_ssl.sh" % env.project
                 with cd('/usr/local/bin/'):
                     upload_template(
-                        filename="le-renew.sh",
-                        destination='/usr/local/bin/renew.sh',
-                        template_dir="./",
+                        filename=src(req.parse("suarm"), "suarm/scripts/le-renew.sh"),
+                        destination='/usr/local/bin/%s' % renew_name,
                         context={
-                            "apps": env.apps,
-                            "cluster": env.cluster
+                            "domain": env.domain,
+                            "service": env.web_server
                         },
-                        use_jinja=True,
                         use_sudo=True,
                     )
-            sudo("chmod u+x /usr/local/bin/renew.sh")
-            sudo("/usr/local/bin/renew.sh")
-            sudo("certbot renew")
-            repetition = '30 2 * * *'
-            cmd = '/usr/bin/certbot renew --renew-hook \"/usr/local/bin/renew.sh\" >> /var/log/le-renewal.log'
-            run('crontab -l | grep -v "%s"  | crontab -' % cmd)
-            run('crontab -l | { cat; echo "%s %s"; } | crontab -' % (repetition, cmd))
-
+                sudo("chmod u+x /usr/local/bin/%s" % renew_name)
+                sudo("/usr/local/bin/%s" % renew_name)
+                sudo("certbot renew")
+                repetition = '30 2 * * *'
+                cmd = '/usr/bin/certbot renew --renew-hook \"/usr/local/bin/%s\" >> /var/log/le-renewal.log' % renew_name
+                run('crontab -l | grep -v "%s"  | crontab -' % cmd)
+                run('crontab -l | { cat; echo "%s %s"; } | crontab -' % (repetition, cmd))
+            else:
+                print("\n---> LE Skipped...!!!\n")
 
     @staticmethod
     def reboot():
@@ -146,7 +154,7 @@ class Server(object):
         """
          Create app user.
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             sudo('adduser %(user)s --home %(home_path)s/%(user)s --disabled-password --gecos \"\"' % {
                 "user": make_user(env.project),
                 "home_path": HOME_PATH,
@@ -164,7 +172,7 @@ class Server(object):
         """
          Create app group.
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             sudo('groupadd --system %s' % make_team(env.project))
             sudo('useradd --system --gid %(team)s --shell /bin/bash --home %(user_home)s %(user)s' %
                  {
@@ -199,7 +207,7 @@ class Server(object):
         3. Verify if database exist.
         4. If DB not exist create DB and assign to user.
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             mysql_user = get_value(env.stage, "mysql_user")
             mysql_pass = get_value(env.stage, "mysql_pass")
             # CREATE DATABASE
@@ -238,7 +246,7 @@ class Server(object):
         1. Create DB user.
         2. Create DB and assign to user.
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             sudo('psql -c "CREATE USER %(db_user)s WITH NOCREATEDB NOCREATEUSER ENCRYPTED PASSWORD \'%(db_pass)s\'"' % {
                 "db_user": make_user(env.project),
                 "db_pass": env.passwd,
@@ -255,7 +263,8 @@ class Server(object):
         1. Setup bare Git repo.
         2. Create post-receive hook.
         """
-        with settings(warn_only=True):
+
+        with settings(hide('warnings'), warn_only=True):
             if exists(HOME_PATH) is False:
                 sudo('mkdir %s' % HOME_PATH)
 
@@ -272,21 +281,19 @@ class Server(object):
                 sudo('mkdir -p %s.git' % env.project)
                 with cd('%s.git' % env.project):
                     sudo('git init --bare --shared')
-                    with lcd("suarm/scripts"):
-                        with cd('hooks'):
-                            upload_template(
-                                filename="post-receive",
-                                destination="%(project_path)s/%(project_name)s.git/hooks" % {
-                                    "project_path": get_project_path(env.stage),
-                                    "project_name": env.project,
-                                },
-                                template_dir="./",
-                                context={
-                                    "project_path": get_project_src(env.stage),
-                                },
-                                use_sudo=True,
-                            )
-                            sudo('chmod +x post-receive')
+                    with cd('hooks'):
+                        upload_template(
+                            filename=src(req.parse("suarm"), "suarm/scripts/post-receive"),
+                            destination="%(project_path)s/%(project_name)s.git/hooks" % {
+                                "project_path": get_project_path(env.stage),
+                                "project_name": env.project,
+                            },
+                            context={
+                                "project_path": get_project_src(env.stage),
+                            },
+                            use_sudo=True,
+                        )
+                        sudo('chmod +x post-receive')
 
                 sudo('chown -R %(user)s:%(team)s %(project)s.git' % {
                     "user": make_user(env.project),
@@ -300,7 +307,7 @@ class Server(object):
         1. Delete existent server remote git value.
         2. Add existent server remote git value.
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True, ):
             local('git remote remove %s' % env.stage)
             local('git remote add %(remote_name)s %(project_user)s@%(ipv4)s:%(project_path)s/%(project_name)s.git' % {
                 "remote_name": env.stage,
@@ -318,7 +325,7 @@ class Server(object):
         3. Copy local config to remote config
         4. Setup new symbolic link
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             # nginx remove default config
             if exists('/etc/nginx/sites-enabled/default'):
                 sudo('rm /etc/nginx/sites-enabled/default')
@@ -329,23 +336,25 @@ class Server(object):
             if exists('/etc/nginx/sites-available/%s' % env.domain):
                 sudo('rm /etc/nginx/sites-available/%s' % env.domain)
 
-            # Main domain configuration
-            with lcd("suarm/tmpl"):
-                with cd('/etc/nginx/sites-available/'):
-                    upload_template(
-                        filename="./django_nginx.conf",
-                        destination='/etc/nginx/sites-available/%s' % env.domain,
-                        template_dir="./",
-                        context={
-                            "project_name": env.project,
-                            "project_path": get_project_src(env.stage),
-                            "project_url": env.urls,
-                            "project_domain": env.domain,
-                            "project_https": env.https,
-                        },
-                        use_jinja=True,
-                        use_sudo=True,
-                    )
+            # Choose between templates
+            if env.https:
+                nginx_config = resource_filename(Requirement.parse("suarm"), "suarm/tmpl/django_nginx_ssl.conf")
+            else:
+                nginx_config = resource_filename(Requirement.parse("suarm"), "suarm/tmpl/django_nginx.conf")
+
+            with cd('/etc/nginx/sites-available/'):
+                upload_template(
+                    filename=nginx_config,
+                    destination='/etc/nginx/sites-available/%s' % env.domain,
+                    keep_trailing_newline=True,
+                    context={
+                        "project_name": env.project,
+                        "project_path": get_project_src(env.stage),
+                        "project_url": env.urls,
+                        "project_domain": env.domain,
+                    },
+                    use_sudo=True,
+                )
 
             sudo('ln -s /etc/nginx/sites-available/%s /etc/nginx/sites-enabled/' % env.domain)
 
@@ -371,26 +380,23 @@ class Server(object):
         1. Create new gunicorn start script
         2. Copy local start script template redered to server
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             sudo('rm -rf %s/bin' % get_project_src(env.stage))
             sudo('mkdir -p %s/bin' % get_project_src(env.stage))
 
-            with lcd("suarm/scripts"):
-                with cd('%s/bin' % get_project_src(env.stage)):
-                    upload_template(
-                        filename='./start.sh',
-                        destination='%s/bin/start.sh' % get_project_src(env.stage),
-                        template_dir="./",
-                        context={
-                            "project_name": env.project,
-                            "project_path": get_project_src(env.stage),
-                            "app_user": make_user(env.project),
-                            "app_group": make_team(env.project),
-                        },
-                        use_jinja=True,
-                        use_sudo=True,
-                    )
-                    sudo('chmod +x %s/bin/start.sh' % get_project_src(env.stage))
+            with cd('%s/bin' % get_project_src(env.stage)):
+                upload_template(
+                    filename=src(req.parse("suarm"), "suarm/scripts/start.sh"),
+                    destination='%s/bin/start.sh' % get_project_src(env.stage),
+                    context={
+                        "project_name": env.project,
+                        "project_path": get_project_src(env.stage),
+                        "app_user": make_user(env.project),
+                        "app_group": make_team(env.project),
+                    },
+                    use_sudo=True,
+                )
+                sudo('chmod +x %s/bin/start.sh' % get_project_src(env.stage))
 
     @staticmethod
     def supervisor():
@@ -399,24 +405,21 @@ class Server(object):
         2. Copy local config to remote config.
         3. Register new command.
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             if exists('/etc/supervisor/conf.d/%s.conf' % env.domain):
                 sudo('rm /etc/supervisor/conf.d/%s.conf' % env.domain)
 
-            with lcd("suarm/tmpl"):
-                with cd('/etc/supervisor/conf.d'):
-                    upload_template(
-                        filename="./django_supervisor.conf",
-                        destination='./%s.conf' % env.domain,
-                        template_dir="./",
-                        context={
-                            "project_name": env.project,
-                            "project_path": get_project_src(env.stage),
-                            "app_user": make_user(env.project),
-                        },
-                        use_jinja=True,
-                        use_sudo=True,
-                    )
+            with cd('/etc/supervisor/conf.d'):
+                upload_template(
+                    filename=src(req.parse("suarm"), "suarm/tmpl/django_supervisor.conf"),
+                    destination='%s.conf' % env.domain,
+                    context={
+                        "project_name": env.project,
+                        "project_path": get_project_src(env.stage),
+                        "app_user": make_user(env.project),
+                    },
+                    use_sudo=True,
+                )
 
     @staticmethod
     def restart_services():
@@ -425,7 +428,7 @@ class Server(object):
         2. Restart nginx.
         3. Restart supervisor.
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             if exists('%s/var/log' % get_project_src(env.stage)):
                 sudo('supervisorctl reread')
                 sudo('supervisorctl update')
@@ -439,13 +442,13 @@ class Server(object):
         """
         Generate and configure locales in recently installed server.
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             sudo("locale-gen en_US.UTF-8")
             sudo("dpkg-reconfigure locales")
 
     @staticmethod
     def var():
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             with cd(get_project_src(env.stage)):
                 sudo("mkdir -p var")
                 sudo("mkdir -p var/cache var/log var/db var/bin")
@@ -455,7 +458,7 @@ class Server(object):
         """
          Fix Permissions.
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             sudo('chown -R %(user)s:%(group)s %(user_home)s' % {
                 "user": make_user(env.project),
                 "group": make_team(env.project),
@@ -490,7 +493,7 @@ class Server(object):
         7. Delete app group.
         8. Delete app user.
         """
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             sudo('pkill -u %s' % make_user(env.project))
 
             Server.drop_db()
@@ -520,7 +523,7 @@ class Server(object):
 
     @staticmethod
     def drop_db():
-        with settings(warn_only=True):
+        with settings(hide('warnings'), warn_only=True):
             db_engine = get_value(env.stage, "db_engine", default=DB_POSTGRESQL)
 
             if db_engine == DB_MYSQL:

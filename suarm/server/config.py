@@ -80,20 +80,6 @@ def has_key(stage, key):
     return key in servers[stage]
 
 
-def _upload_key():
-    """
-    Upload  id_rsa.pub file to server.
-    This file is obtained from ssh-keygen command.
-    """
-    try:
-        local("ssh-copy-id %(user)s@%(ip_addres)s" % {
-            "user": make_user(env.project),
-            "ip_addres": env.ip
-        })
-    except Exception as e:
-        raise Exception('Unfulfilled local requirements')
-
-
 def set_stage(stage='production'):
     if stage in servers.keys():
         env.stage = stage
@@ -106,6 +92,11 @@ def set_stage(stage='production'):
         env.web_server = get_value(env.stage, "web_server", default=WS_NGINX)
         env.ipv4 = get_value(env.stage, "ipv4")
         env.https = get_value(env.stage, "https", default=True)
+        if env.https and not has_key(env.stage, "email"):
+            sys.exit('\n\n[https] activated for [%s] server, [email] value is needed to continue...\n' % stage)
+        else:
+            env.email = get_value(env.stage, "email")
+
     else:
         sys.exit("[%s] server doesn't registered into config file" % stage)
 

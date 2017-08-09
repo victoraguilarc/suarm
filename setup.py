@@ -41,6 +41,9 @@ setup(
     url="https://suarm.readthedocs.org",
     packages=find_packages(),
     include_package_data=True,
+    package_data={
+        'nginx': ['suarm/tmpl/django_nginx.conf'],
+    },
     install_requires=requires,
     entry_points={'console_scripts': [
         'suarm = suarm.cli:main']},

@@ -1,16 +1,19 @@
-import requests, json, sys, os, click
-import os.path
+
+import requests
+import click
 from time import sleep
 
 from click import prompt
-from fabric.context_managers import hide
 from fabric.operations import local
 from fabric.state import env
 from fabric.tasks import execute
 
-from ..cluster.actions import settings, create_server, SLEEP_TIME, register_ip, save_on_config, API_ENDPOINT, \
+from ..cluster.actions import (
+    settings, create_server, SLEEP_TIME,
+    register_ip, save_on_config, API_ENDPOINT,
     DESTROY_SERVER, headers, config_env
-from ..server.config import set_user, _upload_key, set_stage
+)
+from ..server.config import set_user, set_stage
 from ..server.project import Project
 from ..server.server import Server
 
@@ -79,8 +82,7 @@ def setup_loadbalancer():
 # ---------------------------------------------------------------------
 def upgrade_server():
     set_user(superuser=True)
-    with settings(hide('warnings'), warn_only=True, ):
-        execute(Server.upgrade, hosts=env.hosts)
+    execute(Server.upgrade, hosts=env.hosts)
 
 
 def setup_server(stage="production"):
@@ -110,8 +112,7 @@ def clean_server(stage="production"):
     """
     set_stage(stage)
     set_user(superuser=True)
-    with settings(hide('warnings'), warn_only=True, ):
-        execute(Server.clean, hosts=env.hosts)
+    execute(Server.clean, hosts=env.hosts)
 
 
 def restart_server(stage="production"):
@@ -120,8 +121,7 @@ def restart_server(stage="production"):
     """
     set_stage(stage)
     set_user(superuser=True)
-    with settings(hide('warnings'), warn_only=True, ):
-        execute(Server.restart_services, hosts=env.hosts)
+    execute(Server.restart_services, hosts=env.hosts)
 
 
 def view_servers():
@@ -138,11 +138,10 @@ def deploy_django_application(stage="production"):
     """
     set_stage(stage)
     set_user()
-    with settings(hide('warnings'), warn_only=True, ):
-        execute(Project.push, hosts=env.hosts)
-        execute(Project.environment, hosts=env.hosts)
-        execute(Project.install, hosts=env.hosts)
-        execute(Project.clean, hosts=env.hosts)
+    execute(Project.push, hosts=env.hosts)
+    execute(Project.environment, hosts=env.hosts)
+    execute(Project.install, hosts=env.hosts)
+    execute(Project.clean, hosts=env.hosts)
 
 
 def fix_permissions(stage="production"):
@@ -151,8 +150,7 @@ def fix_permissions(stage="production"):
     """
     set_stage(stage)
     set_user(superuser=True)
-    with settings(hide('warnings'), warn_only=True, ):
-        execute(Server.fix_permissions, hosts=env.hosts)
+    execute(Server.fix_permissions, hosts=env.hosts)
 
 
 def add_remote_server(stage="production"):
@@ -160,8 +158,8 @@ def add_remote_server(stage="production"):
     Add project repo url to local git configuration.
     """
     set_stage(stage)
-    with settings(hide('warnings'), warn_only=True, ):
-        execute(Server.add_remote, hosts=env.hosts)
+    set_user()
+    execute(Server.add_remote, hosts=env.hosts)
 
 
 def upload_key_to_server(stage="production"):
@@ -170,8 +168,7 @@ def upload_key_to_server(stage="production"):
     """
     set_stage(stage)
     set_user()
-    with settings(hide('warnings'), warn_only=True, ):
-        execute(_upload_key, hosts=env.hosts)
+    execute(Project.upload_key, hosts=env.hosts)
 
 
 def reset_database(stage="production"):
@@ -183,8 +180,7 @@ def reset_database(stage="production"):
 
     if reset == 'y' or reset == 'Y':
         set_user(superuser=True)
-        with settings(hide('warnings'), warn_only=True, ):
-            execute(Server.reset_db, hosts=env.hosts)
+        execute(Server.reset_db, hosts=env.hosts)
 
 
 def reset_environment(stage="production"):
@@ -196,8 +192,7 @@ def reset_environment(stage="production"):
 
     if reset == 'y' or reset == 'Y':
         set_user(superuser=True)
-        with settings(hide('warnings'), warn_only=True, ):
-            execute(Project.reset_env, hosts=env.hosts)
+        execute(Project.reset_env, hosts=env.hosts)
 
 
 def createsuperuser(stage="production"):
@@ -206,8 +201,7 @@ def createsuperuser(stage="production"):
     """
     set_stage(stage)
     set_user(superuser=True)
-    with settings(hide('warnings'), warn_only=True, ):
-        execute(Project.create_superuser, hosts=env.hosts)
+    execute(Project.create_superuser, hosts=env.hosts)
 
 
 def setup_server_language():
@@ -220,8 +214,7 @@ def renew_ssl_certificates(stage="production"):
     set_stage(stage)
     set_user(superuser=True)
     pass
-    # with settings(hide('warnings'), warn_only=True, ):
-    #     if domain:
+    # if domain:
     #         execute(Server.letsencrypt, domain, hosts=env.hosts)
     #     else:
     #         raise Exception("The domain param is required!")

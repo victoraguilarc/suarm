@@ -110,3 +110,17 @@ class Project(object):
     @staticmethod
     def backup_files():
         pass
+
+    @staticmethod
+    def upload_key():
+        """
+        Upload  id_rsa.pub file to server.
+        This file is obtained from ssh-keygen command.
+        """
+        try:
+            local("ssh-copy-id %(user)s@%(ipv4)s" % {
+                "user": make_user(env.project),
+                "ipv4": env.ipv4
+            })
+        except Exception as e:
+            raise Exception('Unfulfilled local requirements')
