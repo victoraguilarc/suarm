@@ -28,6 +28,7 @@ class Server(object):
 
         pkgs = local("grep -vE '^\s*\#' %s  | tr '\n' ' '" % deps_file, capture=True)
         sudo("apt-get install -y %s" % pkgs)
+        sudo("apt-get install -y python-virtualenv python-pip")
 
         db_engine = get_value(env.stage, "db_engine", default=DB_POSTGRESQL)
         print("\nInstalling Dependencies for [database]...\n")
@@ -85,7 +86,9 @@ class Server(object):
         1. Obtain certificates for apps
         2. Setting Up autorenew logic
         """
+
         with settings(hide('warnings'), warn_only=True):
+            sudo("service %s stop" % env.web_server)
             if env.https:
                 # sudo("mkdir -p /etc/haproxy/certs")
 
@@ -119,9 +122,11 @@ class Server(object):
                 sudo("/usr/local/bin/%s" % renew_name)
                 sudo("certbot renew")
                 repetition = '30 2 * * *'
-                cmd = '/usr/bin/certbot renew --renew-hook \"/usr/local/bin/%s\" >> /var/log/le-renewal.log' % renew_name
+                cmd = '/usr/bin/certbot renew --renew-hook \"/usr/local/bin/%s\" >> /var/log/le-renewal.log' % \
+                      renew_name
                 run('crontab -l | grep -v "%s"  | crontab -' % cmd)
                 run('crontab -l | { cat; echo "%s %s"; } | crontab -' % (repetition, cmd))
+                sudo("service %s start" % env.web_server)
             else:
                 print("\n---> LE Skipped...!!!\n")
 

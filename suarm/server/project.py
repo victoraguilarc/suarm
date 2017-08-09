@@ -1,11 +1,19 @@
 from __future__ import unicode_literals
+
+import os
+
+import sys
 from fabric.api import *
-from fabric.contrib.files import upload_template
+from fabric.contrib.files import upload_template, exists
 
 from ..server.config import get_project_src, make_user
 
 
 class Project(object):
+
+    @staticmethod
+    def config_settings():
+        pass
 
     @staticmethod
     def push():
@@ -17,16 +25,48 @@ class Project(object):
         """
         Run intall command.
         """
-        with cd(get_project_src(env.stage)):
-            run("make reload SETTINGS=config.settings.production")
+        python = "DJANGO_SETTINGS_MODULE=config.settings.production ./env/bin/python"
+        pip = "./env/bin/pip"
 
-    @staticmethod
-    def load_corpus():
-        """
-        Run intall command.
-        """
         with cd(get_project_src(env.stage)):
-            run("make load_corpus SETTINGS=config.settings.production")
+            """
+            SETTINGS=config.settings.local
+            PYTHON_ENV := =$(SETTINGS) ./env/bin/python
+            PIP_ENV := DJANGO_SETTINGS_MODULE=$(SETTINGS) ./env/bin/pip
+            virtualenv -p python3 env --always-copy --no-site-packages
+            $(PIP_ENV) install -r requirements/production.txt
+            mkdir -p var/cache
+            mkdir -p var/log
+            mkdir -p var/db
+            mkdir -p var/run
+            mkdir -p var/bin
+            $(PYTHON_ENV) manage.py migrate
+            $(PYTHON_ENV) manage.py collectstatic \
+            -v 0 \
+            --noinput \
+            --traceback \
+            -i django_extensions \
+            -i '*.coffee' \
+            -i '*.rb' \
+            -i '*.scss' \
+            -i '*.less' \
+            -i '*.sass'
+            rm -rf var/cache/*
+            rm -rf public/media/cache/*
+            """
+
+            if not exists("env"):
+                run("virtualenv -p python3 env --always-copy --no-site-packages")
+
+            run("%(pip)s install -r requirements/production.txt" % {"pip": pip})
+            run("mkdir -p var/cache var/log var/db var/run var/bin")
+            run("%(python)s manage.py migrate" % {"python": python})
+            run("%(python)s manage.py collectstatic \
+                    -v 0 --noinput --traceback -i django_extensions \
+                    -i '*.coffee' -i '*.rb' -i '*.scss' -i '*.less' -i '*.sass'" % {"python": python})
+
+            run("rm -rf var/cache/*")
+            run("rm -rf public/media/cache/*")
 
     @staticmethod
     def clean():
@@ -42,13 +82,17 @@ class Project(object):
     @staticmethod
     def environment():
         """ Push the environment configuration """
+
         with cd(get_project_src(env.stage)):
-            upload_template(
-                filename=".environment",
-                destination='.environment',
-                template_dir="./",
-                use_sudo=False,
-            )
+            if os.path.isfile(".environment"):
+                upload_template(
+                    filename=".environment",
+                    destination='.environment',
+                    template_dir="./",
+                    use_sudo=False,
+                )
+            else:
+                sys.exit("\nYou need [.environment] file to continue with deployment")
 
     @staticmethod
     def start():
@@ -81,16 +125,6 @@ class Project(object):
                 run("make superuser SETTINGS=config.settings.production")
 
     @staticmethod
-    def corpora():
-        """
-        Create a superuser to production at selected server.
-        """
-        with settings(user=make_user(env.project), password=env.passwd):
-            with cd(get_project_src(env.stage)):
-                run("make corpora SETTINGS=config.settings.production")
-
-
-    @staticmethod
     def reset_env():
         """
         Create a superuser to production at selected server.
@@ -100,15 +134,7 @@ class Project(object):
                 run("rm -rf env/")
 
     @staticmethod
-    def backup_logs():
-        pass
-
-    @staticmethod
-    def backup_db():
-        pass
-
-    @staticmethod
-    def backup_files():
+    def run_django_command(command):
         pass
 
     @staticmethod

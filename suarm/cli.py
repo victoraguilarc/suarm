@@ -219,7 +219,7 @@ def server(listing, setup, clean, deploy, stage, fix_perms, add_remote, upload_k
         print("\nCREATE SUPERUSER IN [%s] SERVER\n" % stage)
         createsuperuser(stage=stage)
     elif renew_certificates:
-        print("\nRENEW CERTIFICATES\n" % stage)
+        print("\nRENEW CERTIFICATES IN [%s]\n" % stage)
         renew_ssl_certificates(stage=stage)
     elif restart:
         restart_server(stage=stage)

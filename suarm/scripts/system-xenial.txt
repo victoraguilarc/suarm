@@ -7,6 +7,7 @@ gettext
 python3-dev
 python-pip
 python-virtualenv
+virtualenv
 
 ## SHARED DEPENDENCIES OF:
 ## Pillow, pylibmc

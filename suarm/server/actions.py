@@ -188,7 +188,7 @@ def reset_environment(stage="production"):
     Reset the python env
     """
     set_stage(stage)
-    reset = prompt("Reset Database, Are you sure? (y/N)", default="N")
+    reset = prompt("Reset environment, Are you sure? (y/N)", default="N")
 
     if reset == 'y' or reset == 'Y':
         set_user(superuser=True)
@@ -213,8 +213,8 @@ def setup_server_language():
 def renew_ssl_certificates(stage="production"):
     set_stage(stage)
     set_user(superuser=True)
-    pass
-    # if domain:
-    #         execute(Server.letsencrypt, domain, hosts=env.hosts)
-    #     else:
-    #         raise Exception("The domain param is required!")
+
+    if env.domain:
+        execute(Server.letsencrypt, hosts=env.hosts)
+    else:
+        raise Exception("[domain] is reuired into [%s] server configuration" % env.stage)
