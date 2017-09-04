@@ -9,10 +9,10 @@ from fabric.state import env
 from fabric.tasks import execute
 
 from ..cluster.actions import (
-    settings, create_server, SLEEP_TIME,
+    create_server, SLEEP_TIME,
     register_ip, save_on_config, API_ENDPOINT,
-    DESTROY_SERVER, headers, config_env
-)
+    DESTROY_SERVER, config_env,
+    get_cluster_config)
 from ..server.config import set_user, set_stage
 from ..server.project import Project
 from ..server.server import Server
@@ -25,7 +25,7 @@ def add_node(tag, plan=201, oss="COREOS", zone="SILICON_VALLEY"):
         os = CoreOS
         zone = Silicon Valley
     """
-
+    settings, headers = get_cluster_config()
     if tag in settings:
         if "SUBID" in settings[tag] and "ipv4" in settings[tag]:
             create = input("Are your sure to (re)create this? (y/N) : ")
@@ -53,6 +53,7 @@ def add_node(tag, plan=201, oss="COREOS", zone="SILICON_VALLEY"):
 
 
 def del_node(tag):
+    settings, headers = get_cluster_config()
     if tag in settings and "SUBID" in settings[tag]:
         payload = {'SUBID': settings[tag]["SUBID"]}
         req = requests.post(API_ENDPOINT + DESTROY_SERVER, data=payload, headers=headers)
@@ -70,6 +71,7 @@ def del_node(tag):
 
 
 def setup_loadbalancer():
+    settings, headers = get_cluster_config()
     if "loadbalancer" in settings and "ipv4" in settings["loadbalancer"]:
         config_env()
         execute(Server.deps, hosts=[settings["loadbalancer"]["ipv4"]])

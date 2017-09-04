@@ -23,7 +23,7 @@ WS_NGINX = "nginx"
 WS_APACHE = "apache"
 
 
-def config(cfile=CONFIG_FILE):
+def get_server_config(cfile=CONFIG_FILE):
     try:
         config_file = open(cfile, 'r')
         return json.load(config_file)
@@ -31,10 +31,9 @@ def config(cfile=CONFIG_FILE):
         print(e)
         sys.exit('Valid [django.json] file is required!')
 
-servers = config()
-
 
 def get_value(stage, key, default=None):
+    servers = get_server_config()
     if key in servers[stage]:
         return servers[stage][key]
     elif default:
@@ -56,6 +55,7 @@ def make_app(project):
 
 
 def get_user_home(stage="develop"):
+    servers = get_server_config()
     return "%(home_path)s/%(user)s" % {
         "home_path": HOME_PATH,
         "user": make_user(servers[stage]["project"]),
@@ -63,6 +63,7 @@ def get_user_home(stage="develop"):
 
 
 def get_project_path(stage="develop"):
+    servers = get_server_config()
     return "%(user_home)s/%(project)s" % {
         "user_home": get_user_home(stage),
         "project": make_app(servers[stage]["project"]),
@@ -70,6 +71,7 @@ def get_project_path(stage="develop"):
 
 
 def get_project_src(stage="develop"):
+    servers = get_server_config()
     return "%(user_home)s/%(project)s/src" % {
         "user_home": get_user_home(stage),
         "project": make_app(servers[stage]["project"]),
@@ -77,10 +79,12 @@ def get_project_src(stage="develop"):
 
 
 def has_key(stage, key):
+    servers = get_server_config()
     return key in servers[stage]
 
 
 def set_stage(stage='production'):
+    servers = get_server_config()
     if stage in servers.keys():
         env.stage = stage
         env.project = get_value(env.stage, "project")
@@ -102,6 +106,7 @@ def set_stage(stage='production'):
 
 
 def set_user(superuser=False):
+    servers = get_server_config()
     if superuser:
         env.user = username = get_value(env.stage, "superuser", default="root")
         if has_key(env.stage, "key_filename") and os.path.isfile(get_value(env.stage, "key_filename", default=None)):

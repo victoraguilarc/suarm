@@ -3,13 +3,16 @@ import json
 import re
 
 import click
+
+from suarm.server.config import get_server_config
 from .application.actions import deploy_app
 from .cluster.actions import (
-    resize_server, destroy_server, settings, register_sshkey,
+    resize_server, destroy_server, register_sshkey,
     list_sshkeys, destroy_sshkey, create_cluster, setup_cluster,
     destroy_cluster, create_servers, xetup_registry, xetup_proxy,
-    xetup_dashboard, save_on_config
-)
+    xetup_dashboard, save_on_config,
+    get_cluster_config)
+
 from .server.actions import (
     setup_server, clean_server, view_servers,
     restart_server, deploy_django_application,
@@ -30,6 +33,7 @@ def main(config):
 @click.option('--plan', '-p', type=int, default=None, help='Resize a node')
 @click.option('--subid', '-s', type=str, default=None, help='SUbID for node operations')
 def node(resize, delete, plan, subid):
+    settings, headers = get_cluster_config()
     if resize:
         click.echo('-- ON Resize...')
         if plan and subid:
@@ -73,6 +77,7 @@ def keys(create, show, delete):
 @click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
 def cluster(create, setup, delete, add_worker, add_manager, setup_registry,
             setup_proxy, setup_dashboard, restart):
+    settings, headers = get_cluster_config()
     if create:
         create_cluster()
     elif setup:
@@ -131,7 +136,7 @@ def loadbalancer(create, delete, setup):
 @click.option('--delete', '-r', is_flag=True, help='Delete an app from de cluster')
 @click.option('--deploy', '-d', is_flag=True, help='Deploy an app ')
 def service(create, delete, deploy):
-
+    settings, headers = get_cluster_config()
     if create:
         click.echo('\n--> Registering new app :)\n')
         name = input("NAME for application : ")
@@ -188,6 +193,7 @@ def service(create, delete, deploy):
 @click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
 def server(listing, setup, clean, deploy, stage, fix_perms, add_remote, upload_keyfile,
            reset_db, reset_env, create_superuser, renew_certificates, restart):
+    servers = get_server_config()
     if listing:
         print("\nLIST SERVERS\n")
         view_servers()
@@ -224,4 +230,5 @@ def server(listing, setup, clean, deploy, stage, fix_perms, add_remote, upload_k
     elif restart:
         restart_server(stage=stage)
     else:
-        click.echo(settings)
+        click.echo(servers)
+

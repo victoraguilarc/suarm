@@ -6,6 +6,7 @@ import requests, json, sys, os, click
 import os.path
 from time import sleep
 
+from fabric.operations import local
 from fabric.state import env
 from fabric.tasks import execute
 
@@ -26,7 +27,7 @@ LIST_SSHKEY = "/v1/sshkey/list"
 NODE_IPV4 = "/v1/server/list_ipv4"
 
 CONFIG_FILE = "./swarm.json"
-SLEEP_TIME = 15
+SLEEP_TIME = 5
 
 # SETTINGS
 # --------------------
@@ -41,7 +42,6 @@ def config(cfile):
            "ssh-key" in settings and \
            "worker" in settings and \
            "manager" in settings and \
-           "apps" in settings and \
            "email" in settings and \
            "label" in settings:
             return settings
@@ -56,22 +56,27 @@ def get_headers(settings):
         return {"API-Key": settings["api-key"]}
     return None
 
-if os.path.isfile(CONFIG_FILE):
-    settings = config(CONFIG_FILE)
-    headers = get_headers(settings)
-else:
-    settings = None
-    headers = None
+
+def get_cluster_config():
+    if os.path.isfile(CONFIG_FILE):
+        settings = config(CONFIG_FILE)
+        headers = get_headers(settings)
+    else:
+        sys.exit('Valid [swarm.json] file is required!')
+    return settings, headers
 
 
 def register_ip(subid):
+    settings, headers = get_cluster_config()
     req = requests.get(API_ENDPOINT + NODE_IPV4, params={"SUBID": subid}, headers=headers)
     if req.status_code == 200:
         ips = req.json()[subid]
         for ip in ips:
             if ip["type"] == "main_ip":
-                click.echo("--> IP: " + ip["ip"] + " ...  OK.")
-                return ip["ip"]
+                if ip["ip"] != "0.0.0.0":
+                    click.echo("--> IP: " + ip["ip"] + " ...  OK.")
+                    return ip["ip"]
+        return None
     else:
         click.echo(req.text)
         return None
@@ -83,6 +88,7 @@ def create_server(zone, plan, oss, label, mode="worker"):
     VPSPLANID = VPS Plan (Mem/CPU)
     OSID = Operative System
     """
+    settings, headers = get_cluster_config()
     _zone = get_zone(zone)
     _oss = get_os(oss)
 
@@ -110,6 +116,7 @@ def create_server(zone, plan, oss, label, mode="worker"):
 
 
 def resize_server(subid, plan):
+    settings, headers = get_cluster_config()
     payload = {'SUBID': subid, 'VPSPLANID': plan}
     req = requests.post(API_ENDPOINT + UPGRADE_SERVER, data=payload, headers=headers)
 
@@ -121,6 +128,7 @@ def resize_server(subid, plan):
 
 
 def exist_cluster():
+    settings, headers = get_cluster_config()
     wk = "nodes" in settings["worker"] and isinstance(settings["worker"]["nodes"], list) \
         and len(settings["worker"]["nodes"]) > 0
 
@@ -131,6 +139,7 @@ def exist_cluster():
 
 
 def destroy_server(subid, mode="worker"):
+    settings, headers = get_cluster_config()
     payload = {'SUBID': subid}
     req = requests.post(API_ENDPOINT + DESTROY_SERVER, data=payload, headers=headers)
     if req.status_code == 200:
@@ -149,6 +158,7 @@ def destroy_server(subid, mode="worker"):
 
 
 def destroy_servers(mode="worker"):
+    settings, headers = get_cluster_config()
     nodes = settings[mode]["nodes"]
     success = True; index = 0
     for node in nodes:
@@ -192,13 +202,25 @@ def get_os(key):
     return False
 
 
-def create_servers(replicas, mode="worker"):
+def has_ips(nodes):
+    if len(nodes) > 0:
+        has = True
+        for node in nodes:
+            if "ipv4" in node and node["ipv4"] != "0.0.0.0":
+                has = has and True
+            else:
+                has = has and False
+        return has
+    else:
+        return False
 
+
+def create_servers(replicas, mode="worker"):
+    settings, headers = get_cluster_config()
     label = settings["label"]
     zone = settings[mode].get("zone", "NEW_JERSEY")
     plan = settings[mode].get("plan", 201)
     oss = settings[mode].get("os", "COREOS")
-    nro = len(settings[mode]["nodes"])
 
     if replicas <= 0:
         sys.exit("You need at least 1 replica")
@@ -212,24 +234,30 @@ def create_servers(replicas, mode="worker"):
             _label = "%s-%s0%s" % (label, mode, nro)
         else:
             _label = "%s-%s%s" % (label, mode, nro)
-
         success = success and create_server(zone, plan, oss, _label, mode=mode)
-        sleep(2)
 
     if success:
-        click.echo("\nRegistering IPs...")
-        sleep(SLEEP_TIME)
+        click.echo("\n---> Registering IP(s)...")
+        while True:
+            settings, headers = get_cluster_config()
+            nodes = settings[mode]["nodes"]
 
-        for node in settings[mode]["nodes"]:
-            node["ipv4"] = register_ip(node["SUBID"])
-            save_on_config(mode, settings[mode])
+            if len(nodes) > 0:
+                for node in nodes:
+                    ipv4 = register_ip(node["SUBID"])
+                    if ipv4:
+                        node["ipv4"] = ipv4
+                        save_on_config(mode, settings[mode])
 
-        settings[mode]["replicas"] = len(settings[mode]["nodes"])
-        save_on_config(mode, settings[mode])
+            if has_ips(nodes):
+                break
+            else:
+                sleep(SLEEP_TIME)
     return success
 
 
 def create_cluster():
+    settings, headers = get_cluster_config()
     if exist_cluster():
         create = input("You have a cluster, Do you want to create another? [Yes/No](Y/N) : ")
         if create == 'n' or create == 'N':
@@ -242,10 +270,7 @@ def create_cluster():
         save_on_config("worker", settings["worker"])
         save_on_config("manager", settings["manager"])
 
-
     if len(settings["ssh-key"]) > 0:
-
-        # Create worker nodes
         worker_replicas = settings["worker"].get("replicas", 1)
         manager_replicas = settings["manager"].get("replicas", 1)
 
@@ -266,6 +291,8 @@ def create_cluster():
 
 
 def generate_key(label):
+    settings, headers = get_cluster_config()
+    local("mkdir -p keys")
     os.system("ssh-keygen -t rsa -b 4096 -C '%(label)s cluster' -f ./keys/%(label)s_rsa -N ''" % {"label": label})
     f = open("./keys/%s_rsa.pub" % label, "r")
     ssh_key = f.readline()
@@ -291,6 +318,7 @@ def save_on_config(key, value):
 
 
 def register_sshkey():
+    settings, headers = get_cluster_config()
     sshkeyid = generate_key(settings["label"])
     if sshkeyid:
         save_on_config("ssh-key", sshkeyid)
@@ -299,6 +327,7 @@ def register_sshkey():
 
 
 def destroy_sshkey():
+    settings, headers = get_cluster_config()
     sshkeyid = settings["ssh-key"]
     if sshkeyid:
         payload = {'SSHKEYID': sshkeyid}
@@ -318,6 +347,7 @@ def destroy_sshkey():
 
 
 def list_sshkeys():
+    settings, headers = get_cluster_config()
     req = requests.get(API_ENDPOINT + LIST_SSHKEY, headers=headers)
     if req.status_code == 200:
         _keys = req.json()
@@ -348,6 +378,7 @@ def list_sshkeys():
 
 
 def config_env():
+    settings, headers = get_cluster_config()
     env.user = 'root'
     env.key_filename = 'keys/%s_rsa' % settings["label"]
     env.apps = settings["apps"]
@@ -385,8 +416,6 @@ def setup_cluster():
     config_env()
     execute(Cluster.config, hosts=[env.master])
     xetup_dashboard()
-    # sed -i -e 's/stable/alpha/g' hello.txt
-    # update_engine_client -update
 
 
 def xetup_registry():
