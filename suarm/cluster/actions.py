@@ -400,6 +400,8 @@ def config_env():
 
             if env.has_env:
                 env.label = local("cat .environment | grep PROJECT_LABEL", capture=True).split("=")[1]
+                env.registry_host = local("cat .environment | grep REGISTRY_HOST", capture=True).split("=")[1]
+                env.registry_user = local("cat .environment | grep REGISTRY_USER", capture=True).split("=")[1]
 
                 # Set WORKER servers
                 workers = settings["worker"]["nodes"]

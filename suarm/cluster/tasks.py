@@ -1,12 +1,16 @@
 from __future__ import unicode_literals
 
 import os, sys, re, click
-from fabric.context_managers import lcd, cd, quiet, hide
-from fabric.contrib.files import exists, upload_template
-from fabric.operations import sudo, run, local
+from getpass import getpass
+
+from fabric.context_managers import cd, quiet, hide
+from fabric.contrib.files import upload_template
+from fabric.operations import run, local
 from fabric.state import env
 from fabric.api import settings
 from fabric.tasks import execute
+from pkg_resources import resource_filename, Requirement
+
 
 try:
     from StringIO import StringIO
@@ -125,14 +129,15 @@ class Cluster(object):
         with quiet():
             run("mkdir -p /apps/proxy")
             run("docker network create -d overlay proxy")
-            with lcd("suarm/tmpl"):
-                with cd('/apps/proxy/'):
-                    upload_template(
-                        filename="swarm_proxy.yml",
-                        destination='/apps/proxy/proxy.yml',
-                        template_dir="./",
-                        use_sudo=True,
-                    )
+            proxy_file = resource_filename(Requirement.parse("suarm"), "suarm/tmpl/swarm_proxy.yml")
+
+            with cd('/apps/proxy/'):
+                upload_template(
+                    filename=proxy_file,
+                    destination='/apps/proxy/proxy.yml',
+                    template_dir="./",
+                    use_sudo=True,
+                )
 
         with settings(hide('warnings'), warn_only=True):
             # run("docker network ls | grep proxy | awk '{print $1}' | xargs docker network rm")
@@ -178,16 +183,30 @@ class Cluster(object):
                     )
                     click.echo("---> [.environment] uploaded...!!!")
 
-            if os.path.isfile("docker-compose.yml"):
-                with cd(folder):
-                    upload_template(
-                        filename="./docker-compose.yml",
-                        destination='%s/docker-compose.yml' % folder,
-                        template_dir="./",
-                    )
-                    run("docker stack deploy --compose-file docker-compose.yml %s --with-registry-auth" % env.label)
-            else:
-                sys.exit("[docker-compose.yml] is required for deployment")
+            if env.registry_host and env.registry_user:
+                passwd = getpass("\nPut for password por [%(user)s] in [%(host)s]: " % {
+                    "host": env.registry_host,
+                    "user": env.registry_user
+                })
+                if passwd != '':
+                    run("docker login %(host)s -u %(user)s -p '%(passwd)s'" % {
+                        "host": env.registry_host,
+                        "user": env.registry_user,
+                        "passwd": passwd
+                    })
+                else:
+                    sys.exit("Password is required...!")
+
+        if os.path.isfile("docker-compose.yml"):
+            with cd(folder):
+                upload_template(
+                    filename="./docker-compose.yml",
+                    destination='%s/docker-compose.yml' % folder,
+                    template_dir="./",
+                )
+                run("docker stack deploy --compose-file docker-compose.yml %s --with-registry-auth" % env.label)
+        else:
+            sys.exit("[docker-compose.yml] is required for deployment")
 
     @staticmethod
     def config_as_alpha():
