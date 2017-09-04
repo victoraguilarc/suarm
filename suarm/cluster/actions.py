@@ -378,41 +378,82 @@ def list_sshkeys():
 
 
 def config_env():
-    settings, headers = get_cluster_config()
-    env.user = 'root'
+    """
+        ENVIRONMENT variables cor CONTINUOS INTEGRATION:
+        -----------------------------------------------------
+        - CONTINUOS_INTEGRATION (bool): Flag to check CI or not
+        - CLUSTER_MASTER (ipv4): This is IP of the Master in the Cluster
+        - PROJECT_LABEL (str): It Represents name of the project, it has SLUG format
+        - PROJECT_ENVIRONMENT (variables): This contains [.environment] values
+        -----------------------------------------------------
+    """
 
-    if os.path.isfile('keys/%s_rsa' % settings["label"]):
-        env.key_filename = 'keys/%s_rsa' % settings["label"]
-        workers = settings["worker"]["nodes"]
-        _workers = []
-        for server in workers:
-            _workers.append(server["ipv4"])
-        env.workers = _workers
+    env.has_env = os.path.isfile('.environment')  # Check if ENVIRONMENT file exists
+    env.has_config = os.path.isfile('swarm.json')  # Check if CONFIG file exists
+    env.user = 'root'  # default User
 
-        managers = settings["manager"]["nodes"]
-        _managers = []
-        for server in managers:
-            _managers.append(server["ipv4"])
+    if env.has_config:
+        settings, headers = get_cluster_config()
+        if os.path.isfile('keys/%s_rsa' % settings["label"]):
+            env.key_filename = 'keys/%s_rsa' % settings["label"]
 
-        if len(_managers) <= 0:
-            sys.exit('\n-----\n You need configure a cluster MANAGERS first')
-        else:
-            env.master = _managers[0]
-            if len(_managers) > 1:
-                _nodes = list(_managers)
-                del _nodes[0]
-                env.managers = _nodes
+            # Set WORKER servers
+            workers = settings["worker"]["nodes"]
+            _workers = []
+            for server in workers:
+                _workers.append(server["ipv4"])
+            env.workers = _workers
+
+            # Set MANAGER servers
+            managers = settings["manager"]["nodes"]
+            _managers = []
+            for server in managers:
+                _managers.append(server["ipv4"])
+            if len(_managers) <= 0:
+                sys.exit('\n-----\n You need configure a cluster MANAGERS first')
             else:
-                env.managers = []
+                env.master = _managers[0]
+                if len(_managers) > 1:
+                    _nodes = list(_managers)
+                    del _nodes[0]
+                    env.managers = _nodes
+                else:
+                    env.managers = []
 
-        click.echo("------------------------------------------")
-        click.echo("MASTER: %s" % env.master)
-        click.echo("MANAGERS: %s" % env.managers)
-        click.echo("WORKERS: %s" % env.workers)
-        click.echo("------------------------------------------")
+            click.echo("------------------------------------------")
+            click.echo("MASTER: %s" % env.master)
+            click.echo("MANAGERS: %s" % env.managers)
+            click.echo("WORKERS: %s" % env.workers)
+            click.echo("------------------------------------------")
+
+        else:
+            sys.exit('SSH KEY [keys/%s_rsa] doesn\'t exist!' % settings["label"])
 
     else:
-        sys.exit('SSH KEY [keys/%s_rsa] doesn\'t exist!' % settings["label"])
+        env.is_ci = os.environ.get('CONTINUOS_INTEGRATION', False)  # Check if executed via CONTINUOS INTEGRATION
+        if env.is_ci:
+            env.master = os.environ.get('CLUSTER_MASTER', None)
+            env.label = os.environ.get('PROJECT_LABEL', None)
+            env.variables = os.environ.get('PROJECT_ENVIRONMENT', None)
+
+            if not env.variables:
+                click.echo("PROJECT_ENVIRONMENT variable is not configured...!!")
+
+            if not env.master or not env.label:
+                sys.exit("""
+                 This environment variables are required in CONTINUOS INTEGRATION mode:
+                     - CLUSTER_MASTER
+                     - PROJECT_LABEL
+                """)
+
+
+
+
+
+
+
+
+
 
 
 def setup_cluster():

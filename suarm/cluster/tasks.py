@@ -41,14 +41,14 @@ class Cluster(object):
     @staticmethod
     def config():
         """
-        Configure cluster for nodes maser and workers
+        Configure cluster for master, managers and worker nodes
         """
 
-        # for node_ipv4 in env.managers:
-        #     local("ssh-keygen -R %s" % node_ipv4)
-        #
-        # for node_ipv4 in env.workers:
-        #     local("ssh-keygen -R %s" % node_ipv4)
+        for node_ipv4 in env.managers:
+            local("ssh-keygen -R %s" % node_ipv4)
+
+        for node_ipv4 in env.workers:
+            local("ssh-keygen -R %s" % node_ipv4)
 
         with settings(warn_only=True):
             env.hosts = [env.master]
@@ -143,54 +143,48 @@ class Cluster(object):
 
     @staticmethod
     def deploy_app():
-        cluster = env.master
-        label = env.label
 
-        if cluster and label:
-            click.echo("---------------------------------")
-            click.echo("MASTER: %s" % cluster)
-            click.echo("LABEL: %s" % label)
-            click.echo("---------------------------------")
-
-            folder = "/apps/%s" % label
-            run("mkdir -p %s" % folder)
-            run("mkdir -p %s/data" % folder)
-
-            if env.develop:
+        click.echo("---------------------------------")
+        click.echo(" Starting Deployment ")
+        click.echo("---------------------------------")
+        click.echo("MASTER: %s" % env.master)
+        click.echo("LABEL: %s" % env.label)
+        click.echo("---------------------------------")
+        folder = "/apps/%s" % env.label
+        run("mkdir -p %s" % folder)
+        run("mkdir -p %s/data" % folder)
+        if env.is_ci:
+            if env.variables:
+                click.echo("Loading [PROJECT_ENVIRONMENT] variables ...")
+                f = open('/tmp/.tempenv', 'w')
+                f.write(env.variables)
+                f.close()
+                click.echo("[.environment] created...!!!")
                 with cd(folder):
                     upload_template(
-                        filename="./.environment",
+                        filename="/tmp/.tempenv",
+                        destination='%s/.environment' % folder,
+                        template_dir="./",
+                    )
+                click.echo("[.environment] uploaded and configured...")
+
+        else:
+            if env.has_env:
+                with cd(folder):
+                    upload_template(
+                        filename=".environment",
                         destination='%s/.environment' % folder,
                         template_dir="./",
                     )
                     click.echo("---> [.environment] uploaded...!!!")
-            else:
-                if env.variables:
-                    click.echo("Exist [DEPLOY_ENVIRONMENT] into your env...")
-                    f = open('/tmp/.tempenv', 'w')
-                    f.write(env.variables)
-                    f.close()
-                    click.echo("[.environment] created...!!!")
-                    with cd(folder):
-                        upload_template(
-                            filename="/tmp/.tempenv",
-                            destination='/apps/%s/.environment' % label,
-                            template_dir="./",
-                        )
-                    click.echo("[.environment] uploaded and configured...")
-
-                else:
-                    click.echo("[DEPLOY_ENVIRONMENT] doesn't into your env...")
 
             if os.path.isfile("docker-compose.yml"):
-                with cd("/apps/%s" % label):
+                with cd(folder):
                     upload_template(
                         filename="./docker-compose.yml",
-                        destination='/apps/%s/docker-compose.yml' % label,
+                        destination='%s/docker-compose.yml' % folder,
                         template_dir="./",
                     )
                     run("docker stack deploy --compose-file docker-compose.yml %s --with-registry-auth" % env.label)
             else:
-                sys.exit("[docker-compose.yml] is required")
-        else:
-            sys.exit("[DEPLOY_CLUSTER] and [DEPLOY_PROJECT] values are required")
+                sys.exit("[docker-compose.yml] is required for deployment")

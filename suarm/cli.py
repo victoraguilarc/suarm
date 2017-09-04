@@ -232,3 +232,14 @@ def server(listing, setup, clean, deploy, stage, fix_perms, add_remote, upload_k
     else:
         click.echo(servers)
 
+
+@main.command('apps')
+@click.option('--deploy', '-d', is_flag=True, help='Deploy and application based on [docker-compose.yml]')
+@click.option('--remove', '-r', is_flag=True, help='Remove and application based on [docker-compose.yml]')
+def apps(deploy, remove):
+    if deploy:
+        register_sshkey()
+    elif remove:
+        list_sshkeys()
+    else:
+        list_sshkeys()
