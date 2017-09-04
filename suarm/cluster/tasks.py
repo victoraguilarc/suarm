@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import os, sys, re, click
 from fabric.context_managers import lcd, cd, quiet, hide
 from fabric.contrib.files import exists, upload_template
-from fabric.operations import sudo, run
+from fabric.operations import sudo, run, local
 from fabric.state import env
 from fabric.api import settings
 from fabric.tasks import execute
@@ -43,6 +43,13 @@ class Cluster(object):
         """
         Configure cluster for nodes maser and workers
         """
+
+        # for node_ipv4 in env.managers:
+        #     local("ssh-keygen -R %s" % node_ipv4)
+        #
+        # for node_ipv4 in env.workers:
+        #     local("ssh-keygen -R %s" % node_ipv4)
+
         with settings(warn_only=True):
             env.hosts = [env.master]
             cmd = "docker swarm init --advertise-addr %s" % env.master

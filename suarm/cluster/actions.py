@@ -380,36 +380,39 @@ def list_sshkeys():
 def config_env():
     settings, headers = get_cluster_config()
     env.user = 'root'
-    env.key_filename = 'keys/%s_rsa' % settings["label"]
-    env.apps = settings["apps"]
 
-    workers = settings["worker"]["nodes"]
-    _workers = []
-    for server in workers:
-        _workers.append(server["ipv4"])
-    env.workers = _workers
+    if os.path.isfile('keys/%s_rsa' % settings["label"]):
+        env.key_filename = 'keys/%s_rsa' % settings["label"]
+        workers = settings["worker"]["nodes"]
+        _workers = []
+        for server in workers:
+            _workers.append(server["ipv4"])
+        env.workers = _workers
 
-    managers = settings["manager"]["nodes"]
-    _managers = []
-    for server in managers:
-        _managers.append(server["ipv4"])
+        managers = settings["manager"]["nodes"]
+        _managers = []
+        for server in managers:
+            _managers.append(server["ipv4"])
 
-    if len(_managers) <= 0:
-        sys.exit('\n-----\n You need configure a cluster MANAGERS first')
-    else:
-        env.master = _managers[0]
-        if len(_managers) > 1:
-            _nodes = list(_managers)
-            del _nodes[0]
-            env.managers = _nodes
+        if len(_managers) <= 0:
+            sys.exit('\n-----\n You need configure a cluster MANAGERS first')
         else:
-            env.managers = None
+            env.master = _managers[0]
+            if len(_managers) > 1:
+                _nodes = list(_managers)
+                del _nodes[0]
+                env.managers = _nodes
+            else:
+                env.managers = []
 
-    click.echo("------------------------------------------")
-    click.echo("MASTER: %s" % env.master)
-    click.echo("MANAGERS: %s" % env.managers)
-    click.echo("WORKERS: %s" % env.workers)
-    click.echo("------------------------------------------")
+        click.echo("------------------------------------------")
+        click.echo("MASTER: %s" % env.master)
+        click.echo("MANAGERS: %s" % env.managers)
+        click.echo("WORKERS: %s" % env.workers)
+        click.echo("------------------------------------------")
+
+    else:
+        sys.exit('SSH KEY [keys/%s_rsa] doesn\'t exist!' % settings["label"])
 
 
 def setup_cluster():
