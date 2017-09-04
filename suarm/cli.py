@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import json
-import re
 
 import click
 
@@ -10,9 +8,8 @@ from suarm.server.config import get_server_config
 from .cluster.actions import (
     resize_server, destroy_server, register_sshkey,
     list_sshkeys, destroy_sshkey, create_cluster, setup_cluster,
-    destroy_cluster, create_servers, xetup_registry, xetup_proxy,
-    xetup_dashboard, save_on_config,
-    get_cluster_config)
+    destroy_cluster, create_servers, setup_cluster_registry, setup_cluster_proxy,
+    setup_cluster_dashboard, get_cluster_config, setup_cluster_as_alpha, show_cluster_docker_version, restart_cluster)
 
 from .server.actions import (
     setup_server, clean_server, view_servers,
@@ -72,12 +69,14 @@ def keys(create, show, delete):
 @click.option('--delete', '-d', is_flag=True, help='Delete a Current cluster')
 @click.option('--add-worker', '-a', type=int, default=None, help='Add worker to cluster')
 @click.option('--add-manager', '-a', type=int, default=None, help='Add manager to cluster')
-@click.option('--setup-registry', '-sr', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
-@click.option('--setup-proxy', '-sp', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
-@click.option('--setup-dashboard', '-sd', is_flag=True, help='Setup an Haproxy loadbalancer in the cluster')
+@click.option('--setup-registry', '-sr', is_flag=True, help='Setup a REGISTRY in the cluster')
+@click.option('--setup-proxy', '-sp', is_flag=True, help='Setup a PROXY FLOW in the cluster')
+@click.option('--setup-dashboard', '-sd', is_flag=True, help='Setup PORTAINER and VISUALIZER in the cluster')
+@click.option('--set-alpha', '-sa', is_flag=True, help='Setup all servers on alpha updates mode')
+@click.option('--show-docker', '-vd', is_flag=True, help='Show Docker version')
 @click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
 def cluster(create, setup, delete, add_worker, add_manager, setup_registry,
-            setup_proxy, setup_dashboard, restart):
+            setup_proxy, setup_dashboard, set_alpha, show_docker, restart):
     settings, headers = get_cluster_config()
     if create:
         create_cluster()
@@ -90,15 +89,17 @@ def cluster(create, setup, delete, add_worker, add_manager, setup_registry,
     elif add_manager:
         pass
     elif setup_registry:
-        xetup_registry()
+        setup_cluster_registry()
     elif setup_proxy:
-        xetup_proxy()
+        setup_cluster_proxy()
     elif setup_dashboard:
-        xetup_dashboard()
+        setup_cluster_dashboard()
+    elif set_alpha:
+        setup_cluster_as_alpha()
+    elif show_docker:
+        show_cluster_docker_version()
     elif restart:
-        # TODO
-        # restart_cluster()
-        pass
+        restart_cluster()
     else:
         click.echo(settings)
 
@@ -130,52 +131,6 @@ def loadbalancer(create, delete, setup):
     elif delete:
         # TODO Implement for only one server
         pass
-
-
-@main.command('service')
-@click.option('--create', '-c', is_flag=True, help='Register an app for deploy in the cluster')
-@click.option('--delete', '-r', is_flag=True, help='Delete an app from de cluster')
-@click.option('--deploy', '-d', is_flag=True, help='Deploy an app ')
-def service(create, delete, deploy):
-    settings, headers = get_cluster_config()
-    if create:
-        click.echo('\n--> Registering new app :)\n')
-        name = input("NAME for application : ")
-        if name:
-            email = input("EMAIL for application contact : ")
-            if bool(re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+[a-zA-Z]$)", email)):
-                domain = input("DOMAIN for the application : ")
-                if bool(re.match(r"(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", domain)):
-                    try:
-                        port = int(input("PORT of application in the cluster : "))
-                        if port >= 30000:
-                            https = input("Do you wish enable HTTPS ? (Y/N): ")
-                            _https = False
-                            if https == 'y' or https == 'Y':
-                                _https = True
-
-                            settings["apps"].append({
-                                "name": name, "email": email,
-                                "domain": domain, "port": port,
-                                "https": _https
-                            })
-                            save_on_config("apps", settings["apps"])
-                            click.echo("\nApplication Created!!!")
-                        else:
-                            click.echo("\nInvalid PORT, it should be GREATER THAN 30000 and 50000")
-                    except Exception as e:
-                        click.echo("\nInvalid PORT, it should be INT")
-                else:
-                    click.echo("\nInvalid DOMAIN!!!")
-            else:
-                click.echo("\nInvalid EMAIL!!!")
-
-    elif delete:
-        click.echo('--> DELETE')
-    elif deploy:
-        pass
-    else:
-        click.echo(json.dumps(settings["apps"], indent=4, sort_keys=True))
 
 
 @main.command('server')
@@ -234,10 +189,10 @@ def server(listing, setup, clean, deploy, stage, fix_perms, add_remote, upload_k
         click.echo(servers)
 
 
-@main.command('app')
+@main.command('service')
 @click.option('--deploy', '-d', is_flag=True, help='Deploy and application based on [docker-compose.yml]')
 @click.option('--remove', '-r', is_flag=True, help='Remove and application based on [docker-compose.yml]')
-def app(deploy, remove):
+def service(deploy, remove):
     if deploy:
         deploy_app()
     elif remove:

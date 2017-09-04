@@ -188,3 +188,46 @@ class Cluster(object):
                     run("docker stack deploy --compose-file docker-compose.yml %s --with-registry-auth" % env.label)
             else:
                 sys.exit("[docker-compose.yml] is required for deployment")
+
+    @staticmethod
+    def config_as_alpha():
+        with settings(hide('warnings'), warn_only=True):
+            execute(Cluster.set_alpha_channel, hosts=env.managers)
+            execute(Cluster.set_alpha_channel, hosts=env.workers)
+
+    @staticmethod
+    def restart():
+        with settings(hide('warnings'), warn_only=True):
+            execute(Cluster.restart_node, hosts=env.managers)
+            execute(Cluster.restart_node, hosts=env.workers)
+
+    @staticmethod
+    def show_docker_version():
+        with settings(hide('warnings'), warn_only=True):
+            execute(Cluster.docker_version, hosts=env.managers)
+            execute(Cluster.docker_version, hosts=env.workers)
+
+    @staticmethod
+    def set_alpha_channel():
+        click.echo('\n\n--------------------------------------------------------')
+        click.echo("--> HOST: [%s]" % env.host_string)
+        run('echo "GROUP=alpha" > /etc/coreos/update.conf')
+        run('systemctl restart update-engine')
+        run('update_engine_client -update')
+        click.echo('--------------------------------------------------------')
+
+    @staticmethod
+    def docker_version():
+        click.echo('\n\n--------------------------------------------------------')
+        click.echo("--> HOST: [%s]" % env.host_string)
+        run('docker -v')
+        click.echo('--------------------------------------------------------')
+
+    @staticmethod
+    def restart_node():
+        click.echo('\n\n--------------------------------------------------------')
+        click.echo("--> HOST: [%s]" % env.host_string)
+        run('reboot')
+        click.echo('--------------------------------------------------------')
+
+

@@ -449,31 +449,37 @@ def config_env():
                 """)
 
 
-
-
-
-
-
-
-
-
-
 def setup_cluster():
     config_env()
     execute(Cluster.config, hosts=[env.master])
-    xetup_dashboard()
+    setup_cluster_dashboard()
 
 
-def xetup_registry():
+def restart_cluster():
+    config_env()
+    execute(Cluster.restart, hosts=[env.master])
+
+
+def setup_cluster_as_alpha():
+    config_env()
+    execute(Cluster.config_as_alpha, hosts=[env.master])
+
+
+def show_cluster_docker_version():
+    config_env()
+    execute(Cluster.show_docker_version, hosts=[env.master])
+
+
+def setup_cluster_registry():
     config_env()
     execute(Cluster.registry, hosts=[env.master])
 
 
-def xetup_dashboard():
+def setup_cluster_dashboard():
     config_env()
     execute(Cluster.dashboard, hosts=[env.master])
 
 
-def xetup_proxy():
+def setup_cluster_proxy():
     config_env()
     execute(Cluster.proxy, hosts=[env.master])
