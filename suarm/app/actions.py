@@ -1,9 +1,5 @@
-import os
-
 import sys
-
 import click
-
 from fabric.state import env
 from fabric.tasks import execute
 
@@ -14,14 +10,7 @@ from ..cluster.tasks import Cluster
 def deploy_app():
     config_env()
     if not env.is_ci:
-        click.echo("----------------------------------------")
-        click.echo(" Deployment via CLI directly")
-        click.echo("----------------------------------------")
-        if not env.has_env:
-            sys.exit("[.environment] file is required")
+        click.echo("\n---> Deployment via CLI directly")
     else:
-        click.echo("----------------------------------------")
-        click.echo(" Deployment via Continuos Integrations")
-        click.echo("----------------------------------------")
-
+        click.echo("\n---> Deployment via Continuos Integrations")
     execute(Cluster.deploy_app, hosts=[env.master])

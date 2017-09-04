@@ -4,8 +4,9 @@ import re
 
 import click
 
+from suarm.app.actions import deploy_app
 from suarm.server.config import get_server_config
-from .application.actions import deploy_app
+
 from .cluster.actions import (
     resize_server, destroy_server, register_sshkey,
     list_sshkeys, destroy_sshkey, create_cluster, setup_cluster,
@@ -172,7 +173,7 @@ def service(create, delete, deploy):
     elif delete:
         click.echo('--> DELETE')
     elif deploy:
-        deploy_app()
+        pass
     else:
         click.echo(json.dumps(settings["apps"], indent=4, sort_keys=True))
 
@@ -233,13 +234,13 @@ def server(listing, setup, clean, deploy, stage, fix_perms, add_remote, upload_k
         click.echo(servers)
 
 
-@main.command('apps')
+@main.command('app')
 @click.option('--deploy', '-d', is_flag=True, help='Deploy and application based on [docker-compose.yml]')
 @click.option('--remove', '-r', is_flag=True, help='Remove and application based on [docker-compose.yml]')
-def apps(deploy, remove):
+def app(deploy, remove):
     if deploy:
-        register_sshkey()
+        deploy_app()
     elif remove:
-        list_sshkeys()
+        pass
     else:
-        list_sshkeys()
+        pass
