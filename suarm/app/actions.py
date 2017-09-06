@@ -8,7 +8,7 @@ from ..cluster.tasks import Cluster
 
 
 def deploy_app():
-    config_env()
+    config_env(deploy=True)
     if not env.is_ci:
         click.echo("\n---> Deployment via CLI directly")
     else:

@@ -377,7 +377,7 @@ def list_sshkeys():
         click.echo("\n--> ERROR: %s " % req.text)
 
 
-def config_env():
+def config_env(deploy=False):
     """
         ENVIRONMENT variables cor CONTINUOS INTEGRATION:
         -----------------------------------------------------
@@ -399,9 +399,11 @@ def config_env():
             env.key_filename = 'keys/%s_rsa' % settings["label"]
 
             if env.has_env:
-                env.label = local("cat .environment | grep PROJECT_LABEL", capture=True).split("=")[1]
-                env.registry_host = local("cat .environment | grep REGISTRY_HOST", capture=True).split("=")[1]
-                env.registry_user = local("cat .environment | grep REGISTRY_USER", capture=True).split("=")[1]
+
+                if deploy:
+                    env.label = local("cat .environment | grep PROJECT_LABEL", capture=True).split("=")[1]
+                    env.registry_host = local("cat .environment | grep REGISTRY_HOST", capture=True).split("=")[1]
+                    env.registry_user = local("cat .environment | grep REGISTRY_USER", capture=True).split("=")[1]
 
                 # Set WORKER servers
                 workers = settings["worker"]["nodes"]
@@ -432,7 +434,8 @@ def config_env():
                 click.echo("WORKERS: %s" % env.workers)
                 click.echo("------------------------------------------")
             else:
-                sys.exit('[.environment] file is required for deploy without ')
+                if deploy:
+                    sys.exit('[.environment] file is required for deploy without ')
 
         else:
             sys.exit('SSH KEY [keys/%s_rsa] doesn\'t exist!' % settings["label"])
