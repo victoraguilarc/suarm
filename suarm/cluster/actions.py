@@ -393,13 +393,16 @@ def config_env(deploy=False):
     env.is_ci = os.environ.get('CONTINUOS_INTEGRATION', False)  # Check if executed via CONTINUOS INTEGRATION
     env.user = 'root'  # default User
 
+    if not env.has_config and deploy:
+        sys.exit('You need a valid [swarm.json] file!!')
+
     if env.has_config:
         settings, headers = get_cluster_config()
         if "path" in settings:
             env.path = settings["path"]
         else:
             env.path = "/apps"
-        
+
         if os.path.isfile('keys/%s_rsa' % settings["label"]):
             env.key_filename = 'keys/%s_rsa' % settings["label"]
 
@@ -433,7 +436,6 @@ def config_env(deploy=False):
             click.echo("------------------------------------------")
 
             if env.has_env:
-
                 if deploy:
                     env.label = local("cat .environment | grep PROJECT_LABEL", capture=True).split("=")[1]
                     env.registry_host = local("cat .environment | grep REGISTRY_HOST", capture=True).split("=")[1]
@@ -446,6 +448,7 @@ def config_env(deploy=False):
             sys.exit('SSH KEY [keys/%s_rsa] doesn\'t exist!' % settings["label"])
 
     else:
+
         if env.is_ci:
             env.master = os.environ.get('CLUSTER_MASTER', None)
             env.label = os.environ.get('PROJECT_LABEL', None)
