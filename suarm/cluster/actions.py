@@ -384,6 +384,7 @@ def config_env(deploy=False):
         - CONTINUOS_INTEGRATION (bool): Flag to check CI or not
         - CLUSTER_MASTER (ipv4): This is IP of the Master in the Cluster
         - PROJECT_LABEL (str): It Represents name of the project, it has SLUG format
+        - PROJECT_PATH (str): Location to docker-compose installation
         - PROJECT_ENVIRONMENT (variables): This contains [.environment] values
         -----------------------------------------------------
     """
