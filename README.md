@@ -35,6 +35,7 @@ this file, contains the next values:
     "api-key": "<MY_VULTR_API_KEY>",
     "ssh-key": "<MY_VULTR_GENERATED_SSHKEYID>",
     "label": "<NAME_FOR_SWARM>",
+    "path": "<PATH_FOR_DEPLOYMENTS>",
     "domain": "<DOMAIN_FOR_SWARM_MASTER>",
     "email": "<YOUR_EMAIL>",
     "manager": {
@@ -50,20 +51,13 @@ this file, contains the next values:
         "plan": 201,
         "os": "COREOS",
         "nodes": []
-    },
-    "apps": [
-        {
-            "name": "web",
-            "domain": "app1.example.com",
-            "port": 30000,
-            "https": true
-        }
-    ]
+    }
 }
 ```
 Where
   * **api-key** is obtained from the [api](https://my.vultr.com/settings/#settingsapi)
-  * **ssh-key** is a SSHKEYID of some your registered ssh keys in the server this is obtained from [api](https://api.vultr.com/v1/sshkey/list)
+  * **ssh-key** is a SSHKEYID of some your registered ssh keys in the server this is obtained from
+  * **ssh-key** is path string for apps deployed with docker compose.
   * **manager** is config for manager nodes
   * **worker** is config for worker nodes
   * **label** Is a name for cluster e.g. swarm > swarm-manager, swarm-worker00, swarm-worker01, ...

@@ -3,7 +3,7 @@ Script to create and configure a docker swarm cluster over CoreOS in https://www
 """
 
 import requests, json, sys, os, click
-import os.path
+from os.path import isfile
 from time import sleep
 
 from fabric.operations import local
@@ -46,7 +46,14 @@ def config(cfile):
            "label" in settings:
             return settings
         else:
-            sys.exit('Valid [swarm.json] file is required!')
+            sys.exit("""[swarm.json] must be contain the next attributes:
+              - api-key
+              - ssh-key
+              - worker
+              - manager
+              - email
+              - label
+            """)
     except Exception as e:
         sys.exit('Valid [swarm.json] file is required!')
 
@@ -58,7 +65,7 @@ def get_headers(settings):
 
 
 def get_cluster_config():
-    if os.path.isfile(CONFIG_FILE):
+    if isfile(CONFIG_FILE):
         settings = config(CONFIG_FILE)
         headers = get_headers(settings)
     else:
@@ -377,7 +384,7 @@ def list_sshkeys():
         click.echo("\n--> ERROR: %s " % req.text)
 
 
-def config_env(deploy=False):
+def config_env(continuos_integration=False, cli_deploy=False):
     """
         ENVIRONMENT variables cor CONTINUOS INTEGRATION:
         -----------------------------------------------------
@@ -388,83 +395,80 @@ def config_env(deploy=False):
         - PROJECT_ENVIRONMENT (variables): This contains [.environment] values
         -----------------------------------------------------
     """
-
-    env.has_env = os.path.isfile('.environment')  # Check if ENVIRONMENT file exists
-    env.has_config = os.path.isfile('swarm.json')  # Check if CONFIG file exists
-    env.is_ci = os.environ.get('CONTINUOS_INTEGRATION', False)  # Check if executed via CONTINUOS INTEGRATION
+    env.is_ci = continuos_integration
     env.user = 'root'  # default User
 
-    if not env.has_config and deploy:
-        sys.exit('You need a valid [swarm.json] file!!')
+    if continuos_integration:
+        env.master = os.environ.get('CLUSTER_MASTER', None)
+        env.variables = os.environ.get('PROJECT_ENVIRONMENT', None)
+        env.path = os.environ.get('PROJECT_PATH', None)
+        env.label = os.environ.get('PROJECT_LABEL', None)
 
-    if env.has_config:
-        settings, headers = get_cluster_config()
-        if "path" in settings:
-            env.path = settings["path"]
-        else:
-            env.path = "/apps"
-
-        if os.path.isfile('keys/%s_rsa' % settings["label"]):
-            env.key_filename = 'keys/%s_rsa' % settings["label"]
-
-            # Set WORKER servers
-            workers = settings["worker"]["nodes"]
-            _workers = []
-            for server in workers:
-                _workers.append(server["ipv4"])
-            env.workers = _workers
-
-            # Set MANAGER servers
-            managers = settings["manager"]["nodes"]
-            _managers = []
-            for server in managers:
-                _managers.append(server["ipv4"])
-            if len(_managers) <= 0:
-                sys.exit('\n-----\n You need configure a cluster MANAGERS first')
-            else:
-                env.master = _managers[0]
-                if len(_managers) > 1:
-                    _nodes = list(_managers)
-                    del _nodes[0]
-                    env.managers = _nodes
-                else:
-                    env.managers = []
-
-            click.echo("------------------------------------------")
-            click.echo("MASTER: %s" % env.master)
-            click.echo("MANAGERS: %s" % env.managers)
-            click.echo("WORKERS: %s" % env.workers)
-            click.echo("------------------------------------------")
-
-            if env.has_env:
-                if deploy:
-                    env.label = local("cat .environment | grep PROJECT_LABEL", capture=True).split("=")[1]
-                    env.registry_host = local("cat .environment | grep REGISTRY_HOST", capture=True).split("=")[1]
-                    env.registry_user = local("cat .environment | grep REGISTRY_USER", capture=True).split("=")[1]
-            else:
-                if deploy:
-                    sys.exit('[.environment] file is required for deploy without ')
-
-        else:
-            sys.exit('SSH KEY [keys/%s_rsa] doesn\'t exist!' % settings["label"])
-
+        if not env.master or not env.variables or not env.path or not env.label:
+            sys.exit("""
+             This environment variables are required in CONTINUOS INTEGRATION mode:
+                 - CLUSTER_MASTER [%(master)s]
+                 - PROJECT_ENVIRONMENT [%(variables)s]
+                 - PROJECT_LABEL [%(label)s]
+                 - PROJECT_PATH [%(path)s]
+            """ % {
+                "master": bool(env.master), "variables": bool(env.variables),
+                "label": bool(env.label), "path": bool(env.path)
+            })
     else:
+        if isfile('swarm.json'): # TODO replace swarm.json for dinamic config file
 
-        if env.is_ci:
-            env.master = os.environ.get('CLUSTER_MASTER', None)
-            env.variables = os.environ.get('PROJECT_ENVIRONMENT', None)
-            env.path = os.environ.get('PROJECT_PATH', None)
-            env.label = os.environ.get('PROJECT_LABEL', None)
+            settings, headers = get_cluster_config()
+            env.path = settings["path"] if "path" in settings else "/apps"
 
-            if not env.master or not env.variables or not env.path or not env.label:
-                sys.exit("""
-                 This environment variables are required in CONTINUOS INTEGRATION mode:
-                     - CLUSTER_MASTER
-                     - PROJECT_ENVIRONMENT
-                     - PROJECT_LABEL
-                     - PROJECT_PATH
-                """)
+            if isfile('keys/%s_rsa' % settings["label"]):
+                env.key_filename = 'keys/%s_rsa' % settings["label"]
 
+                # Set WORKER servers
+                workers = settings["worker"]["nodes"]
+                _workers = []
+                for server in workers:
+                    _workers.append(server["ipv4"])
+                env.workers = _workers
+
+                # Set MANAGER servers
+                managers = settings["manager"]["nodes"]
+                _managers = []
+                for server in managers:
+                    _managers.append(server["ipv4"])
+                if len(_managers) <= 0:
+                    sys.exit('\n-----\n You need configure a cluster MANAGERS first')
+                else:
+                    env.master = _managers[0]
+                    if len(_managers) > 1:
+                        _nodes = list(_managers)
+                        del _nodes[0]
+                        env.managers = _nodes
+                    else:
+                        env.managers = []
+
+                click.echo("------------------------------------------")
+                click.echo("MASTER: %s" % env.master)
+                click.echo("MANAGERS: %s" % env.managers)
+                click.echo("WORKERS: %s" % env.workers)
+                click.echo("------------------------------------------")
+
+            else:
+                sys.exit('SSH Key [keys/%s_rsa] file id required \
+                to manage cluster.' % settings["label"])
+
+            if cli_deploy and isfile('.environment'):
+                env.label = local("cat .environment | grep PROJECT_LABEL",
+                            capture=True).split("=")[1]
+                env.registry_host = local("cat .environment | grep REGISTRY_HOST",
+                                    capture=True).split("=")[1]
+                env.registry_user = local("cat .environment | grep REGISTRY_USER",
+                                    capture=True).split("=")[1]
+            else:
+                sys.exit("[.environment] file is required for CLI deployment!!")
+        else:
+            sys.exit("""In development MODE [swarm.json] and
+            [.environment] files are required!!""")
 
 
 def setup_cluster():
