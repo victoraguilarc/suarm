@@ -127,14 +127,14 @@ class Cluster(object):
         """
         click.echo("Configuring proxy...")
         with quiet():
-            run("mkdir -p /apps/proxy")
+            run("mkdir -p %s/proxy" % env.path)
             run("docker network create -d overlay proxy")
             proxy_file = resource_filename(Requirement.parse("suarm"), "suarm/tmpl/swarm_proxy.yml")
 
-            with cd('/apps/proxy/'):
+            with cd('%s/proxy/' % env.path):
                 upload_template(
                     filename=proxy_file,
-                    destination='/apps/proxy/proxy.yml',
+                    destination='%s/proxy/proxy.yml' % env.path,
                     template_dir="./",
                     use_sudo=True,
                 )
@@ -142,7 +142,7 @@ class Cluster(object):
         with settings(hide('warnings'), warn_only=True):
             # run("docker network ls | grep proxy | awk '{print $1}' | xargs docker network rm")
             # hide('warnings', 'running', 'stdout', 'stderr'),
-            run("docker stack deploy --compose-file /apps/proxy/proxy.yml proxy")
+            run("docker stack deploy --compose-file %s/proxy/proxy.yml proxy" % env.path)
 
         click.echo("---> Proxy has been installed... :)")
 
@@ -155,7 +155,7 @@ class Cluster(object):
         click.echo("MASTER: %s" % env.master)
         click.echo("LABEL: %s" % env.label)
         click.echo("---------------------------------")
-        folder = "/apps/%s" % env.label
+        folder = "%s/%s" % (env.path, env.label)
         run("mkdir -p %s" % folder)
         run("mkdir -p %s/data" % folder)
         if env.is_ci:
@@ -248,5 +248,3 @@ class Cluster(object):
         click.echo("--> HOST: [%s]" % env.host_string)
         run('reboot')
         click.echo('--------------------------------------------------------')
-
-

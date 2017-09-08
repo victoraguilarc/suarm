@@ -395,8 +395,42 @@ def config_env(deploy=False):
 
     if env.has_config:
         settings, headers = get_cluster_config()
+        if "path" in settings:
+            env.path = settings["path"]
+        else:
+            env.path = "/apps"
+        
         if os.path.isfile('keys/%s_rsa' % settings["label"]):
             env.key_filename = 'keys/%s_rsa' % settings["label"]
+
+            # Set WORKER servers
+            workers = settings["worker"]["nodes"]
+            _workers = []
+            for server in workers:
+                _workers.append(server["ipv4"])
+            env.workers = _workers
+
+            # Set MANAGER servers
+            managers = settings["manager"]["nodes"]
+            _managers = []
+            for server in managers:
+                _managers.append(server["ipv4"])
+            if len(_managers) <= 0:
+                sys.exit('\n-----\n You need configure a cluster MANAGERS first')
+            else:
+                env.master = _managers[0]
+                if len(_managers) > 1:
+                    _nodes = list(_managers)
+                    del _nodes[0]
+                    env.managers = _nodes
+                else:
+                    env.managers = []
+
+            click.echo("------------------------------------------")
+            click.echo("MASTER: %s" % env.master)
+            click.echo("MANAGERS: %s" % env.managers)
+            click.echo("WORKERS: %s" % env.workers)
+            click.echo("------------------------------------------")
 
             if env.has_env:
 
@@ -404,35 +438,6 @@ def config_env(deploy=False):
                     env.label = local("cat .environment | grep PROJECT_LABEL", capture=True).split("=")[1]
                     env.registry_host = local("cat .environment | grep REGISTRY_HOST", capture=True).split("=")[1]
                     env.registry_user = local("cat .environment | grep REGISTRY_USER", capture=True).split("=")[1]
-
-                # Set WORKER servers
-                workers = settings["worker"]["nodes"]
-                _workers = []
-                for server in workers:
-                    _workers.append(server["ipv4"])
-                env.workers = _workers
-
-                # Set MANAGER servers
-                managers = settings["manager"]["nodes"]
-                _managers = []
-                for server in managers:
-                    _managers.append(server["ipv4"])
-                if len(_managers) <= 0:
-                    sys.exit('\n-----\n You need configure a cluster MANAGERS first')
-                else:
-                    env.master = _managers[0]
-                    if len(_managers) > 1:
-                        _nodes = list(_managers)
-                        del _nodes[0]
-                        env.managers = _nodes
-                    else:
-                        env.managers = []
-
-                click.echo("------------------------------------------")
-                click.echo("MASTER: %s" % env.master)
-                click.echo("MANAGERS: %s" % env.managers)
-                click.echo("WORKERS: %s" % env.workers)
-                click.echo("------------------------------------------")
             else:
                 if deploy:
                     sys.exit('[.environment] file is required for deploy without ')
