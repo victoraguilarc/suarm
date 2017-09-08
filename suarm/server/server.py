@@ -215,6 +215,7 @@ class Server(object):
         with settings(hide('warnings'), warn_only=True):
             mysql_user = get_value(env.stage, "mysql_user")
             mysql_pass = get_value(env.stage, "mysql_pass")
+
             # CREATE DATABASE
             run("mysql -u %(mysql_user)s -p%(mysql_password)s -e 'CREATE DATABASE %(database)s;'" % {
                 "mysql_user": mysql_user,
