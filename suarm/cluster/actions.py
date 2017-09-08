@@ -452,7 +452,7 @@ def config_env(deploy=False):
         if env.is_ci:
             env.master = os.environ.get('CLUSTER_MASTER', None)
             env.variables = os.environ.get('PROJECT_ENVIRONMENT', None)
-            env.path = os.environ.get('PROJECT_PATH', None
+            env.path = os.environ.get('PROJECT_PATH', None)
             env.label = os.environ.get('PROJECT_LABEL', None)
 
             if not env.master or not env.variables or not env.path or not env.label:
