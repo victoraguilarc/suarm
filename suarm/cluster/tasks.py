@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import os, sys, re, click
 from getpass import getpass
+from os.path import isfile
 
 from fabric.context_managers import cd, quiet, hide
 from fabric.contrib.files import exists, upload_template
@@ -178,7 +179,7 @@ class Cluster(object):
                 click.echo("[.environment] uploaded and configured...")
 
         else:
-            if env.has_env:
+            if isfile(".environment"):
                 with cd(folder):
                     upload_template(
                         filename=".environment",
@@ -201,7 +202,7 @@ class Cluster(object):
                 else:
                     sys.exit("Password is required...!")
 
-        if os.path.isfile("docker-compose.yml"):
+        if          isfile("docker-compose.yml"):
             with cd(folder):
                 is_update = exists("docker-compose.yml")
                 upload_template(

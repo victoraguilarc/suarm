@@ -457,6 +457,9 @@ def config_env(continuos_integration=False, cli_deploy=False):
                 sys.exit('SSH Key [keys/%s_rsa] file id required \
                 to manage cluster.' % settings["label"])
 
+            if cli_deploy and not isfile('.environment'):
+                sys.exit("[.environment] file is required for CLI deployment!!")
+
             if cli_deploy and isfile('.environment'):
                 env.label = local("cat .environment | grep PROJECT_LABEL",
                             capture=True).split("=")[1]
@@ -464,8 +467,7 @@ def config_env(continuos_integration=False, cli_deploy=False):
                                     capture=True).split("=")[1]
                 env.registry_user = local("cat .environment | grep REGISTRY_USER",
                                     capture=True).split("=")[1]
-            else:
-                sys.exit("[.environment] file is required for CLI deployment!!")
+                
         else:
             sys.exit("""In development MODE [swarm.json] and
             [.environment] files are required!!""")
