@@ -206,8 +206,8 @@ class Cluster(object):
 
         if isfile("docker-compose.yml"):
             with cd(folder):
-                check_command = run("docker stack ls | grep %s" % env.label)
-                needs_update = True if len(str(check_command)) > 0 else False
+
+                needs_update = isfile(".environment")
                 upload_template(
                     filename="./docker-compose.yml",
                     destination='%s/docker-compose.yml' % folder,
