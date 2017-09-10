@@ -2,11 +2,13 @@ from __future__ import unicode_literals
 
 import os
 
+import click
 import sys
 from fabric.api import *
 from fabric.contrib.files import upload_template, exists
 
-from ..server.config import get_project_src, make_user, make_app
+from ..server.config import (
+    get_project_src, make_user, make_app, get_user_home)
 
 
 class Project(object):
@@ -187,15 +189,18 @@ class Project(object):
     @staticmethod
     def download_backup():
 
+        click.echo("\n----------------------------------------------------------")
         click.echo("Downloading backup patient please ...!!!")
+        click.echo("----------------------------------------------------------")
 
         get(remote_path="%(home)s/%(app)s.db.tar" % {
             "home": get_user_home(env.stage),
             "app": make_app(env.project)
         }, local_path=".", use_sudo=True)
-        click.echo("\n---> DB Backup downloaded!")
+        click.echo("---> DB Backup                          OK")
         get(remote_path="%(home)s/%(app)s.media.tar" % {
             "home": get_user_home(env.stage),
             "app": make_app(env.project)
         }, local_path=".", use_sudo=True)
-        click.echo("---> MEDIA Backup downloaded!")
+        click.echo("---> MEDIA Backup                       OK")
+        click.echo("----------------------------------------------------------\n")

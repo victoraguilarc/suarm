@@ -7,6 +7,8 @@ from click import prompt
 from fabric.operations import local
 from fabric.state import env
 from fabric.tasks import execute
+from fabric.api import settings
+from fabric.context_managers import cd, quiet, hide
 
 from ..cluster.actions import (
     create_server, SLEEP_TIME,
