@@ -7,6 +7,8 @@ services:
       - 443:443
     networks:
       - proxy
+    volumes:
+      - dfp-certs:/certs
     environment:
       - LISTENER_ADDRESS=swarm-listener
       - MODE=swarm
@@ -28,18 +30,14 @@ services:
         constraints: [node.role == manager]
 
   proxy-le:
-    image: nib0r/docker-flow-proxy-letsencrypt
+    image: nib0r/docker-flow-proxy-letsencrypt:latest
     networks:
       - proxy
     environment:
       - DF_PROXY_SERVICE_NAME=proxy_proxy
-      # - LOG=debug
-      # - CERTBOT_OPTIONS=--staging
+      - LOG=debug
+      - CERTBOT_OPTIONS=--staging
     volumes:
-      # link docker socket to activate secrets support.
-      - /var/run/docker.sock:/var/run/docker.sock
-      # create a dedicated volume for letsencrypt folder.
-      # You will be able to link this volume to another service that also needs certificates.
       - le-certs:/etc/letsencrypt
     deploy:
       replicas: 1
@@ -57,4 +55,6 @@ networks:
 
 volumes:
   le-certs:
+    external: true
+  dfp-certs:
     external: true

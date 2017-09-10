@@ -128,7 +128,11 @@ class Cluster(object):
         click.echo("Configuring proxy...")
         with quiet():
             run("mkdir -p %s/proxy" % env.path)
+
             run("docker network create -d overlay proxy")
+            run("docker volume create le-certs")
+            run("docker volume create dfp-certs")
+
             proxy_file = resource_filename(Requirement.parse("suarm"), "suarm/tmpl/swarm_proxy.yml")
 
             with cd('%s/proxy/' % env.path):
