@@ -212,6 +212,8 @@ class Cluster(object):
                 )
                 if is_update:
                     run("docker stack rm %s" % env.label)
+                    from time import sleep
+                    sleep(5)
                 run("docker stack deploy --compose-file docker-compose.yml %s --with-registry-auth" % env.label)
         else:
             sys.exit("[docker-compose.yml] is required for deployment")
