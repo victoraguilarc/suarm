@@ -4,7 +4,7 @@ import os, sys, re, click
 from getpass import getpass
 
 from fabric.context_managers import cd, quiet, hide
-from fabric.contrib.files import upload_template
+from fabric.contrib.files import exists, upload_template
 from fabric.operations import run, local
 from fabric.state import env
 from fabric.api import settings
@@ -199,11 +199,14 @@ class Cluster(object):
 
         if os.path.isfile("docker-compose.yml"):
             with cd(folder):
+                is_update = exists("docker-compose.yml")
                 upload_template(
                     filename="./docker-compose.yml",
                     destination='%s/docker-compose.yml' % folder,
                     template_dir="./",
                 )
+                if is_update:
+                    run("docker stack rm %s" % env.label)
                 run("docker stack deploy --compose-file docker-compose.yml %s --with-registry-auth" % env.label)
         else:
             sys.exit("[docker-compose.yml] is required for deployment")
