@@ -165,6 +165,7 @@ class Cluster(object):
         folder = "%s/%s" % (env.path, env.label)
         run("mkdir -p %s" % folder)
         run("mkdir -p %s/data" % folder)
+        run("mkdir -p %s/backups" % folder)
         if env.is_ci:
             if env.variables:
                 click.echo("Loading [PROJECT_ENVIRONMENT] variables ...")
