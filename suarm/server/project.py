@@ -6,7 +6,7 @@ import sys
 from fabric.api import *
 from fabric.contrib.files import upload_template, exists
 
-from ..server.config import get_project_src, make_user
+from ..server.config import get_project_src, make_user, make_app
 
 
 class Project(object):
@@ -150,3 +150,52 @@ class Project(object):
             })
         except Exception as e:
             raise Exception('Unfulfilled local requirements')
+
+
+
+
+#-------------------------------------------------------------------------------
+
+    def backup():
+        """
+        Create a database backup
+        """
+
+        # Backup DB
+        sudo('pg_dump %(app)s > /tmp/%(app)s.sql' % {
+            "app": make_app(env.project),
+        }, user='postgres')
+
+        with settings(user=make_user(env.project), password=env.passwd):
+            with cd(get_user_home(env.stage)):
+                # Copy backup from temporal
+                run("cp /tmp/%(app)s.sql ." %
+                    {"app": make_app(env.project)})
+                # Compress DB
+                run("tar -cvf %(app)s.db.tar %(app)s.sql" %
+                    {"app": make_app(env.project)})
+
+                run("rm %(app)s.sql" %
+                    {"app": make_app(env.project)})
+                # Compress media
+                run("tar -cvf %(app)s.media.tar %(app)s/src/public/media/" %
+                    {"app": make_app(env.project)})
+
+        # Clean DB from temporal
+        sudo('rm /tmp/%(app)s.sql' % {"app": make_app(env.project)})
+
+    @staticmethod
+    def download_backup():
+
+        click.echo("Downloading backup patient please ...!!!")
+
+        get(remote_path="%(home)s/%(app)s.db.tar" % {
+            "home": get_user_home(env.stage),
+            "app": make_app(env.project)
+        }, local_path=".", use_sudo=True)
+        click.echo("\n---> DB Backup downloaded!")
+        get(remote_path="%(home)s/%(app)s.media.tar" % {
+            "home": get_user_home(env.stage),
+            "app": make_app(env.project)
+        }, local_path=".", use_sudo=True)
+        click.echo("---> MEDIA Backup downloaded!")

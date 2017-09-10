@@ -212,6 +212,13 @@ def setup_server_language():
     local("echo \"export LC_ALL=C.UTF-8\" >> ~/.bash_profile")
 
 
+def make_backup(stage="production"):
+    set_stage(stage)
+    set_user(superuser=True)
+    with settings(hide('warnings'), warn_only=True, ):
+        execute(Project.backup, hosts=env.hosts)
+        execute(Project.download_backup, hosts=env.hosts)
+
 def renew_ssl_certificates(stage="production"):
     set_stage(stage)
     set_user(superuser=True)
