@@ -202,7 +202,7 @@ class Cluster(object):
                 else:
                     sys.exit("Password is required...!")
 
-        if          isfile("docker-compose.yml"):
+        if isfile("docker-compose.yml"):
             with cd(folder):
                 is_update = exists("docker-compose.yml")
                 upload_template(

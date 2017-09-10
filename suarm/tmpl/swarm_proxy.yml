@@ -36,7 +36,7 @@ services:
     environment:
       - DF_PROXY_SERVICE_NAME=proxy_proxy
       - LOG=debug
-      - CERTBOT_OPTIONS=--staging
+      # - CERTBOT_OPTIONS=--staging
     volumes:
       - le-certs:/etc/letsencrypt
     deploy:
