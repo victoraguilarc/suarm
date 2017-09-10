@@ -131,6 +131,8 @@ class Cluster(object):
             run("mkdir -p %s/proxy" % env.path)
 
             run("docker network create -d overlay proxy")
+
+            # Volumes should be deleted manually
             run("docker volume create le-certs")
             run("docker volume create dfp-certs")
 
@@ -204,13 +206,14 @@ class Cluster(object):
 
         if isfile("docker-compose.yml"):
             with cd(folder):
-                is_update = exists("docker-compose.yml")
+                check_command = run("docker stack ls | grep %s" % env.label)
+                needs_update = True if len(str(check_command)) > 0 else False
                 upload_template(
                     filename="./docker-compose.yml",
                     destination='%s/docker-compose.yml' % folder,
                     template_dir="./",
                 )
-                if is_update:
+                if needs_update:
                     run("docker stack rm %s" % env.label)
                     from time import sleep
                     sleep(5)
