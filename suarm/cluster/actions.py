@@ -438,21 +438,25 @@ def config_env(continuos_integration=False, cli_deploy=False):
                 workers = settings["worker"]["nodes"]
                 _workers = []
                 for server in workers:
-                    _workers.append({
-                        "public_ip": server["public_ip"],
-                        "private_ip": server["private_ip"]
-                    })
+                    _node = dict()
+                    if "public_ip" in server:
+                        _node["public_ip"] = server["public_ip"]
+                    if "private_ip" in server:
+                        _node["private_ip"] = server["public_ip"]
+                    _workers.append(_node)
                 env.workers = _workers
-
 
                 # Set MANAGER servers
                 managers = settings["manager"]["nodes"]
                 _managers = []
                 for server in managers:
-                    _managers.append({
-                        "public_ip": server["public_ip"],
-                        "private_ip": server["private_ip"]
-                    })
+                    _node = dict()
+                    if "public_ip" in server:
+                        _node["public_ip"] = server["public_ip"]
+                    if "private_ip" in server:
+                        _node["private_ip"] = server["public_ip"]
+                    _managers.append(_node)
+
                 if len(_managers) <= 0:
                     sys.exit('\n-----\n You need configure a cluster MANAGERS first')
                 else:
