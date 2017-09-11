@@ -22,10 +22,17 @@ except ImportError:
 class Cluster(object):
 
     @staticmethod
-    def managers():
+    def private_network():
+        run('''echo "[Match]\nName=eth1\n[Link]\nMTUBytes=1450\n[Network]\nAddress=%(private_ip)s\nNetmask=255.255.0.0" > /etc/systemd/network/static.network''' % {
+            "private_ip": env.private_ip
+         })
+        run('systemctl restart systemd-networkd')
+
+    @staticmethod
+    def manager():
         cmd = "docker swarm join --token %(token)s %(master)s:2377" % {
             "token": env.token_manager,
-            "master": env.master}
+            "master": env.master_ip}
 
         result = run(cmd)
         if bool(re.match(r"(^.*docker swarm leave.*$)", result)):
@@ -33,11 +40,10 @@ class Cluster(object):
             run(cmd)
 
     @staticmethod
-    def workers():
-        env.hosts = env.workers
+    def worker():
         cmd = "docker swarm join --token %(token)s %(master)s:2377" % {
             "token": env.token_worker,
-            "master": env.master}
+            "master": env.master_ip}
         result = run(cmd)
         if bool(re.match(r"(^.*docker swarm leave.*$)", result)):
             run("docker swarm leave --force")
@@ -48,16 +54,17 @@ class Cluster(object):
         """
         Configure cluster for master, managers and worker nodes
         """
+        # Clean from knowed_hosts
+        local("ssh-keygen -R %s" % env.master)
+        for node in env.managers:
+            local("ssh-keygen -R %s" % node["public_ip"])
 
-        for node_ipv4 in env.managers:
-            local("ssh-keygen -R %s" % node_ipv4)
-
-        for node_ipv4 in env.workers:
-            local("ssh-keygen -R %s" % node_ipv4)
+        for node in env.workers:
+            local("ssh-keygen -R %s" % node["public_ip"])
 
         with settings(warn_only=True):
-            env.hosts = [env.master]
-            cmd = "docker swarm init --advertise-addr %s" % env.master
+            master_ip = env.master_private if env.master_private else env.master
+            cmd = "docker swarm init --advertise-addr %s" % master_ip
             result = run(cmd)
 
             if bool(re.match(r"(^.*docker swarm leave.*$)", result)):
@@ -77,14 +84,15 @@ class Cluster(object):
 
             env.token_manager = token_manager
             env.token_worker = token_worker
+            env.master_ip = master_ip
+            if env.managers and len(env.managers) > 0:
+                for manager in env.managers:
+                    execute(Cluster.manager, hosts=[manager["public_ip"]])
 
-            if env.managers:
-                env.hosts = env.managers
-                execute(Cluster.managers, hosts=env.managers)
+            if env.workers and len(env.workers) > 0:
+                for worker in env.workers:
+                    execute(Cluster.worker, hosts=[worker["public_ip"]])
 
-            if env.workers:
-                env.hosts = env.workers
-                execute(Cluster.workers, hosts=env.workers)
 
     @staticmethod
     def registry():
@@ -222,23 +230,15 @@ class Cluster(object):
         else:
             sys.exit("[docker-compose.yml] is required for deployment")
 
-    @staticmethod
-    def config_as_alpha():
-        with settings(hide('warnings'), warn_only=True):
-            execute(Cluster.set_alpha_channel, hosts=env.managers)
-            execute(Cluster.set_alpha_channel, hosts=env.workers)
 
     @staticmethod
     def restart():
         with settings(hide('warnings'), warn_only=True):
-            execute(Cluster.restart_node, hosts=env.managers)
-            execute(Cluster.restart_node, hosts=env.workers)
+            click.echo('\n\n--------------------------------------------------------')
+            click.echo("--> HOST: [%s]" % env.host_string)
+            run('reboot')
+            click.echo('--------------------------------------------------------')
 
-    @staticmethod
-    def show_docker_version():
-        with settings(hide('warnings'), warn_only=True):
-            execute(Cluster.docker_version, hosts=env.managers)
-            execute(Cluster.docker_version, hosts=env.workers)
 
     @staticmethod
     def set_alpha_channel():
@@ -251,14 +251,8 @@ class Cluster(object):
 
     @staticmethod
     def docker_version():
-        click.echo('\n\n--------------------------------------------------------')
-        click.echo("--> HOST: [%s]" % env.host_string)
-        run('docker -v')
-        click.echo('--------------------------------------------------------')
-
-    @staticmethod
-    def restart_node():
-        click.echo('\n\n--------------------------------------------------------')
-        click.echo("--> HOST: [%s]" % env.host_string)
-        run('reboot')
-        click.echo('--------------------------------------------------------')
+        with settings(hide('warnings'), warn_only=True):
+            click.echo('\n\n--------------------------------------------------------')
+            click.echo("--> HOST: [%s]" % env.host_string)
+            run('docker -v')
+            click.echo('--------------------------------------------------------')

@@ -108,6 +108,25 @@ For setup cluster manually check [Manually docs](COMMANDS.md)
 
 `docker exec -ti [container]  python manage.py createsuperuser`
 
+## Performance improvement
+To improve performance between nodes in the cluster there should be in the same private network.
+You can configure a private network.
+ - First enable the private network feature in all nodes
+ - Create a file `/etc/systemd/network/static.network` with the next configuration:
+```
+[Match]
+Name=eth1
+
+[Link]
+MTUBytes=1450
+
+[Network]
+Address=10.99.0.10
+Netmask=255.255.0.0
+```
+- Restart networking config
+`sudo systemctl restart systemd-networkd`
+
 ## TODOS
   * **manage domains** add domain to the cluster and manage app domains with Cloudflare
   * **deploy app** app deployment with docker-compose

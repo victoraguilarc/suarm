@@ -9,7 +9,8 @@ from .cluster.actions import (
     resize_server, destroy_server, register_sshkey,
     list_sshkeys, destroy_sshkey, create_cluster, setup_cluster,
     destroy_cluster, create_servers, setup_cluster_registry, setup_cluster_proxy,
-    setup_cluster_dashboard, get_cluster_config, setup_cluster_as_alpha, show_cluster_docker_version, restart_cluster)
+    setup_cluster_dashboard, get_cluster_config, setup_cluster_as_alpha,
+    show_cluster_docker_version, restart_cluster, setup_cluster_network)
 
 from .server.actions import (
     setup_server, clean_server, view_servers,
@@ -72,11 +73,14 @@ def keys(create, show, delete):
 @click.option('--setup-registry', '-sr', is_flag=True, help='Setup a REGISTRY in the cluster')
 @click.option('--setup-proxy', '-sp', is_flag=True, help='Setup a PROXY FLOW in the cluster')
 @click.option('--setup-dashboard', '-sd', is_flag=True, help='Setup PORTAINER and VISUALIZER in the cluster')
-@click.option('--set-alpha', '-sa', is_flag=True, help='Setup all servers on alpha updates mode')
-@click.option('--show-docker', '-vd', is_flag=True, help='Show Docker version')
+@click.option('--setup-alpha-mode', '-sa', is_flag=True, help='Setup all servers on alpha updates mode')
+@click.option('--setup-network', '-rn', is_flag=True, help='Setup private Network for the cluster')
+@click.option('--docker-version', '-vd', is_flag=True, help='Show Docker version')
 @click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
-def cluster(create, setup, delete, add_worker, add_manager, setup_registry,
-            setup_proxy, setup_dashboard, set_alpha, show_docker, restart):
+def cluster(create, setup, delete, add_worker, add_manager,
+            setup_registry, setup_proxy,
+            setup_dashboard, setup_alpha_mode, setup_network,
+            docker_version, restart):
     settings, headers = get_cluster_config()
     if create:
         create_cluster()
@@ -94,9 +98,11 @@ def cluster(create, setup, delete, add_worker, add_manager, setup_registry,
         setup_cluster_proxy()
     elif setup_dashboard:
         setup_cluster_dashboard()
-    elif set_alpha:
+    elif setup_alpha_mode:
         setup_cluster_as_alpha()
-    elif show_docker:
+    elif setup_network:
+        setup_cluster_network()
+    elif docker_version:
         show_cluster_docker_version()
     elif restart:
         restart_cluster()

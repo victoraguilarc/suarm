@@ -25,6 +25,8 @@ CREATE_SSHKEY = "/v1/sshkey/create"
 DESTROY_SSHKEY = "/v1/sshkey/destroy"
 LIST_SSHKEY = "/v1/sshkey/list"
 NODE_IPV4 = "/v1/server/list_ipv4"
+ENABLE_PRIVATE_NETWORK = "/v1/server/private_network_enable"
+
 
 CONFIG_FILE = "./swarm.json"
 SLEEP_TIME = 5
@@ -73,17 +75,23 @@ def get_cluster_config():
     return settings, headers
 
 
-def register_ip(subid):
+def register_ip(subid, cluster_exists=False):
     settings, headers = get_cluster_config()
     req = requests.get(API_ENDPOINT + NODE_IPV4, params={"SUBID": subid}, headers=headers)
     if req.status_code == 200:
         ips = req.json()[subid]
+        values = {}
         for ip in ips:
             if ip["type"] == "main_ip":
                 if ip["ip"] != "0.0.0.0":
-                    click.echo("--> IP: " + ip["ip"] + " ...  OK.")
-                    return ip["ip"]
-        return None
+                    click.echo("--> Public IP: " + ip["ip"] + " .........  OK.")
+                    values["public_ip"] = ip["ip"]
+
+            if ip["type"] == "private" and cluster_exists:
+                if ip["ip"] != "0.0.0.0":
+                    click.echo("--> Private IP: " + ip["ip"] + " ........  OK.")
+                    values["private_ip"] = ip["ip"]
+        return values
     else:
         click.echo(req.text)
         return None
@@ -112,8 +120,10 @@ def create_server(zone, plan, oss, label, mode="worker"):
 
     req = requests.post(API_ENDPOINT + CREATE_SERVER, data=payload, headers=headers)
     if req.status_code == 200:
-        settings[mode]["nodes"].append(req.json())
+        node = req.json()
+        settings[mode]["nodes"].append(node)
         save_on_config(mode, settings[mode])
+
         click.echo("\n--> Server [%s] created... \n %s" % (mode, req.text))
         return True
     else:
@@ -213,7 +223,7 @@ def has_ips(nodes):
     if len(nodes) > 0:
         has = True
         for node in nodes:
-            if "ipv4" in node and node["ipv4"] != "0.0.0.0":
+            if "public_ip" in node and node["public_ip"] != "0.0.0.0":
                 has = has and True
             else:
                 has = has and False
@@ -251,9 +261,9 @@ def create_servers(replicas, mode="worker"):
 
             if len(nodes) > 0:
                 for node in nodes:
-                    ipv4 = register_ip(node["SUBID"])
-                    if ipv4:
-                        node["ipv4"] = ipv4
+                    values = register_ip(node["SUBID"])
+                    if values:
+                        node.update(values)
                         save_on_config(mode, settings[mode])
 
             if has_ips(nodes):
@@ -428,18 +438,26 @@ def config_env(continuos_integration=False, cli_deploy=False):
                 workers = settings["worker"]["nodes"]
                 _workers = []
                 for server in workers:
-                    _workers.append(server["ipv4"])
+                    _workers.append({
+                        "public_ip": server["public_ip"],
+                        "private_ip": server["private_ip"]
+                    })
                 env.workers = _workers
+
 
                 # Set MANAGER servers
                 managers = settings["manager"]["nodes"]
                 _managers = []
                 for server in managers:
-                    _managers.append(server["ipv4"])
+                    _managers.append({
+                        "public_ip": server["public_ip"],
+                        "private_ip": server["private_ip"]
+                    })
                 if len(_managers) <= 0:
                     sys.exit('\n-----\n You need configure a cluster MANAGERS first')
                 else:
-                    env.master = _managers[0]
+                    env.master = _managers[0]["public_ip"]
+                    env.master_private = _managers[0]["private_ip"] if "private_ip" in _managers[0] else None
                     if len(_managers) > 1:
                         _nodes = list(_managers)
                         del _nodes[0]
@@ -467,7 +485,7 @@ def config_env(continuos_integration=False, cli_deploy=False):
                                     capture=True).split("=")[1]
                 env.registry_user = local("cat .environment | grep REGISTRY_USER",
                                     capture=True).split("=")[1]
-                
+
         else:
             sys.exit("""In development MODE [swarm.json] and
             [.environment] files are required!!""")
@@ -482,16 +500,28 @@ def setup_cluster():
 def restart_cluster():
     config_env()
     execute(Cluster.restart, hosts=[env.master])
+    for manager in env.managers:
+        execute(Cluster.restart, hosts=[manager["public_ip"]])
+    for worker in env.workers:
+        execute(Cluster.restart, hosts=[worker["public_ip"]])
 
 
 def setup_cluster_as_alpha():
     config_env()
-    execute(Cluster.config_as_alpha, hosts=[env.master])
+    execute(Cluster.set_alpha_channel, hosts=[env.master])
+    for manager in env.managers:
+        execute(Cluster.set_alpha_channel, hosts=[manager["public_ip"]])
+    for worker in env.workers:
+        execute(Cluster.set_alpha_channel, hosts=[worker["public_ip"]])
 
 
 def show_cluster_docker_version():
     config_env()
-    execute(Cluster.show_docker_version, hosts=[env.master])
+    execute(Cluster.docker_version, hosts=[env.master])
+    for manager in env.managers:
+        execute(Cluster.docker_version, hosts=[manager["public_ip"]])
+    for worker in env.workers:
+        execute(Cluster.docker_version, hosts=[worker["public_ip"]])
 
 
 def setup_cluster_registry():
@@ -507,3 +537,42 @@ def setup_cluster_dashboard():
 def setup_cluster_proxy():
     config_env()
     execute(Cluster.proxy, hosts=[env.master])
+
+
+def enable_private_network(mode):
+    settings, headers = get_cluster_config()
+    for node in settings[mode]["nodes"]:
+        payload = {"SUBID": node["SUBID"]}
+        req = requests.post(API_ENDPOINT + ENABLE_PRIVATE_NETWORK, data=payload, headers=headers)
+        if req.status_code == 200:
+            click.echo("\n--> Private network enabled for [%s] server... \n" % node["SUBID"])
+
+        values = register_ip(node["SUBID"], cluster_exists=True)
+        if values:
+            node.update(values)
+            save_on_config(mode, settings[mode])
+
+def setup_cluster_network():
+
+    click.echo("\n ENABLING PRIVATE NETWORK")
+    # Enable Private Networks
+    enable_private_network("manager")
+    enable_private_network("worker")
+
+    # Configure the network interfaces
+    click.echo("\n CONFIGURING PRIVATE NETWORK INTERFACES")
+    config_env()
+    if env.master_private:
+        env.private_ip = env.master_private
+        execute(Cluster.private_network, hosts=[env.master])
+
+    if env.managers:
+        for manager in env.managers:
+            env.private_ip = manager["private_ip"]
+            execute(Cluster.private_network, hosts=[manager["public_ip"]])
+
+    if env.workers:
+        for worker in env.workers:
+            env.private_ip = worker["private_ip"]
+            execute(Cluster.private_network, hosts=[worker["public_ip"]])
+    click.echo("\n PRIVATE NETWORK CONFIGURED ...!!!!")
