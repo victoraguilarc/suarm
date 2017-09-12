@@ -497,6 +497,13 @@ def config_env(continuos_integration=False, cli_deploy=False):
 
 def setup_cluster():
     config_env()
+    settings, headers = get_cluster_config()
+
+    manager = settings["manager"]
+    worker = settings["worker"]
+
+    env.manager_os = manager["os"] if "os" in manager else "COREOS"
+    env.worker_os = worker["os"] if "os" in worker else "COREOS"
     execute(Cluster.config, hosts=[env.master])
     setup_cluster_dashboard()
 

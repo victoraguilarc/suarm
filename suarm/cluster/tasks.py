@@ -50,6 +50,19 @@ class Cluster(object):
             run(cmd)
 
     @staticmethod
+    def install_docker_ubuntu():
+        sudo("apt-get remove docker docker-engine docker.io")
+        sudo("apt-get update")
+        sudo("apt-get install apt-transport-https ca-certificates \
+                curl software-properties-common")
+        run("curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -")
+        sudo("sudo add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+                $(lsb_release -cs) stable\"")
+        sudo("apt-get update")
+        sudo("apt-get install docker-ce")
+
+
+    @staticmethod
     def config():
         """
         Configure cluster for master, managers and worker nodes
@@ -61,6 +74,17 @@ class Cluster(object):
 
         for node in env.workers:
             local("ssh-keygen -R %s" % node["public_ip"])
+
+        # Installing docke if is necesary
+        with settings(warn_only=True):
+            if env.manager_os == "UBUNTU_16_04":
+                execute(Cluster.install_docker_ubuntu, hosts=[env.master])
+                for manager in env.managers:
+                    execute(Cluster.install_docker_ubuntu, hosts=[manager["public_ip"]])
+            if env.worker_os == "UBUNTU_16_04":
+                for worker in env.workers:
+                    execute(Cluster.install_docker_ubuntu, hosts=[worker["public_ip"]])
+
 
         with settings(warn_only=True):
             master_ip = env.master_private if env.master_private else env.master
