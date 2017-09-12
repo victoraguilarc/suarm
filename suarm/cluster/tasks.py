@@ -23,30 +23,30 @@ class Cluster(object):
 
     @staticmethod
     def private_network():
-        with settings(warn_only=True):
+        # with settings(warn_only=True):
 
-            if env.os == "COREOS":
+        if env.os == "COREOS":
 
-                run("echo \"%s%s%s\" > /etc/systemd/network/static.network" %
-                (
-                    "[Match]\nName=eth1\n",
-                    "[Link]\nMTUBytes=1450\n",
-                    "[Network]\nAddress=%(private_ip)s\nNetmask=255.255.0.0" % {
-                        "private_ip": env.private_ip
-                    },
-                ))
+            run("echo \"%s%s%s\" > /etc/systemd/network/static.network" %
+            (
+                "[Match]\nName=eth1\n",
+                "[Link]\nMTUBytes=1450\n",
+                "[Network]\nAddress=%(private_ip)s\nNetmask=255.255.0.0" % {
+                    "private_ip": env.private_ip
+                },
+            ))
 
-                run('systemctl restart systemd-networkd')
-            elif env.os == "UBUNTU_16_04":
-                run("echo \"%s%s%s%s%s\" > /etc/network/interfaces" %
-                (
-                    "auto ens7\n",
-                    "iface ens7 inet static\n",
-                    "    netmask 255.255.0.0\n",
-                    "    mtu 1450\n",
-                    "    address " + env.private_ip
-                ))
-                run('ifup ens7')
+            run('systemctl restart systemd-networkd')
+        elif env.os == "UBUNTU_16_04":
+            run("echo \"%s%s%s%s%s\" >> /etc/network/interfaces" %
+            (
+                "\nauto ens7\n",
+                "iface ens7 inet static\n",
+                "    netmask 255.255.0.0\n",
+                "    mtu 1450\n",
+                "    address " + env.private_ip
+            ))
+            # run('ifup ens7')
 
     @staticmethod
     def manager():

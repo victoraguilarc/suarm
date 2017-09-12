@@ -550,51 +550,53 @@ def setup_cluster_proxy():
     execute(Cluster.proxy, hosts=[env.master])
 
 
-def enable_private_network(mode):
+def configure_private_network(mode, osx):
     settings, headers = get_cluster_config()
+    click.echo("Configuring network... %s" % mode)
+
     for node in settings[mode]["nodes"]:
-        payload = {"SUBID": node["SUBID"]}
-        req = requests.post(API_ENDPOINT + ENABLE_PRIVATE_NETWORK, data=payload, headers=headers)
-        if req.status_code == 200:
-            click.echo("\n--> Private network enabled for [%s] server... \n" % node["SUBID"])
+
+        if "private" not in node:
+            print(node)
+
+            payload = {"SUBID": node["SUBID"]}
+            req = requests.post(API_ENDPOINT + ENABLE_PRIVATE_NETWORK, data=payload, headers=headers)
+            if req.status_code == 200:
+                click.echo("\n--> Private network enabled for node [%s] \n" % node["SUBID"])
+            else:
+                click.echo("The node [%s] has enabled private network" % node["SUBID"])
+            node["private"] = True
 
         values = register_ip(node["SUBID"], cluster_exists=True)
         if values:
             node.update(values)
-            save_on_config(mode, settings[mode])
+    save_on_config(mode, settings[mode])
+
+
 
 def setup_cluster_network():
-    config_env()
 
     settings, headers = get_cluster_config()
 
     manager_os = settings["manager"]["os"] if "os" in settings["manager"] else "COREOS"
     worker_os = settings["worker"]["os"] if "os" in settings["worker"] else "COREOS"
 
-    click.echo("\n ENABLING PRIVATE NETWORK")
-
     # Enable Private Networks on Vultr
-    enable_private_network("manager")
-    enable_private_network("worker")
+    configure_private_network("manager", manager_os)
+    configure_private_network("worker", worker_os)
 
-    # Configure the network interfaces
-    click.echo("\n CONFIGURING PRIVATE NETWORK INTERFACES")
+    # TODO REFACTOR AND ENABLE THIS
+    # config_env()
+    # env.os = manager_os
+    # env.private_ip = env.master_private
+    # execute(Cluster.private_network, hosts=[env.master])
+    # for manager in env.managers:
+    #     env.os = manager_os
+    #     env.private_ip = manager["private_ip"]
+    #     execute(Cluster.private_network, hosts=[manager["public_ip"]])
+    # for worker in env.workers:
+    #     env.os = worker_os
+    #     env.private_ip = manager["private_ip"]
+    #     execute(Cluster.private_network, hosts=[worker["public_ip"]])
 
-    if env.master_private:
-        env.os = manager_os
-        env.private_ip = env.master_private
-        execute(Cluster.private_network, hosts=[env.master])
-
-    if env.managers:
-        for manager in env.managers:
-            env.os = manager_os
-            env.private_ip = manager["private_ip"]
-            execute(Cluster.private_network, hosts=[manager["public_ip"]])
-
-    if env.workers:
-        for worker in env.workers:
-            env.os = worker_os
-            env.private_ip = worker["private_ip"]
-            execute(Cluster.private_network, hosts=[worker["public_ip"]])
-
-    click.echo("\n PRIVATE NETWORK CONFIGURED ...!!!!")
+    click.echo("\n PRIVATE NETWORK ENABLED, OYU NEED CONFIGURE IT ...!!!!")
