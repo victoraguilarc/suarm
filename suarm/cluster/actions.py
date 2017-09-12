@@ -442,7 +442,7 @@ def config_env(continuos_integration=False, cli_deploy=False):
                     if "public_ip" in server:
                         _node["public_ip"] = server["public_ip"]
                     if "private_ip" in server:
-                        _node["private_ip"] = server["public_ip"]
+                        _node["private_ip"] = server["private_ip"]
                     _workers.append(_node)
                 env.workers = _workers
 
@@ -454,7 +454,7 @@ def config_env(continuos_integration=False, cli_deploy=False):
                     if "public_ip" in server:
                         _node["public_ip"] = server["public_ip"]
                     if "private_ip" in server:
-                        _node["private_ip"] = server["public_ip"]
+                        _node["private_ip"] = server["private_ip"]
                     _managers.append(_node)
 
                 if len(_managers) <= 0:
@@ -564,26 +564,37 @@ def enable_private_network(mode):
             save_on_config(mode, settings[mode])
 
 def setup_cluster_network():
+    config_env()
+
+    settings, headers = get_cluster_config()
+
+    manager_os = settings["manager"]["os"] if "os" in settings["manager"] else "COREOS"
+    worker_os = settings["worker"]["os"] if "os" in settings["worker"] else "COREOS"
 
     click.echo("\n ENABLING PRIVATE NETWORK")
-    # Enable Private Networks
+
+    # Enable Private Networks on Vultr
     enable_private_network("manager")
     enable_private_network("worker")
 
     # Configure the network interfaces
     click.echo("\n CONFIGURING PRIVATE NETWORK INTERFACES")
-    config_env()
+
     if env.master_private:
+        env.os = manager_os
         env.private_ip = env.master_private
         execute(Cluster.private_network, hosts=[env.master])
 
     if env.managers:
         for manager in env.managers:
+            env.os = manager_os
             env.private_ip = manager["private_ip"]
             execute(Cluster.private_network, hosts=[manager["public_ip"]])
 
     if env.workers:
         for worker in env.workers:
+            env.os = worker_os
             env.private_ip = worker["private_ip"]
             execute(Cluster.private_network, hosts=[worker["public_ip"]])
+
     click.echo("\n PRIVATE NETWORK CONFIGURED ...!!!!")

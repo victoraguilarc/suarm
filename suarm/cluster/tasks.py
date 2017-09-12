@@ -23,10 +23,30 @@ class Cluster(object):
 
     @staticmethod
     def private_network():
-        run('''echo "[Match]\nName=eth1\n[Link]\nMTUBytes=1450\n[Network]\nAddress=%(private_ip)s\nNetmask=255.255.0.0" > /etc/systemd/network/static.network''' % {
-            "private_ip": env.private_ip
-         })
-        run('systemctl restart systemd-networkd')
+        with settings(warn_only=True):
+
+            if env.os == "COREOS":
+
+                run("echo \"%s%s%s\" > /etc/systemd/network/static.network" %
+                (
+                    "[Match]\nName=eth1\n",
+                    "[Link]\nMTUBytes=1450\n",
+                    "[Network]\nAddress=%(private_ip)s\nNetmask=255.255.0.0" % {
+                        "private_ip": env.private_ip
+                    },
+                ))
+
+                run('systemctl restart systemd-networkd')
+            elif env.os == "UBUNTU_16_04":
+                run("echo \"%s%s%s%s%s\" > /etc/network/interfaces" %
+                (
+                    "auto ens7\n",
+                    "iface ens7 inet static\n",
+                    "    netmask 255.255.0.0\n",
+                    "    mtu 1450\n",
+                    "    address " + env.private_ip
+                ))
+                run('ifup ens7')
 
     @staticmethod
     def manager():
@@ -51,15 +71,15 @@ class Cluster(object):
 
     @staticmethod
     def install_docker_ubuntu():
-        sudo("apt-get remove docker docker-engine docker.io")
-        sudo("apt-get update")
-        sudo("apt-get install apt-transport-https ca-certificates \
+        run("apt-get remove docker docker-engine docker.io")
+        run("apt-get update")
+        run("apt-get install -y  apt-transport-https ca-certificates \
                 curl software-properties-common")
-        run("curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -")
-        sudo("sudo add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+        run("curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -")
+        run("add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu \
                 $(lsb_release -cs) stable\"")
-        sudo("apt-get update")
-        sudo("apt-get install docker-ce")
+        run("apt-get update")
+        run("apt-get install -y docker-ce")
 
 
     @staticmethod
