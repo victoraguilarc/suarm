@@ -12,6 +12,8 @@ from ..server.config import (
 
 
 class Project(object):
+    python = "DJANGO_SETTINGS_MODULE=config.settings.production ./env/bin/python"
+    pip = "./env/bin/pip"
 
     @staticmethod
     def config_settings():
@@ -27,8 +29,6 @@ class Project(object):
         """
         Run intall command.
         """
-        python = "DJANGO_SETTINGS_MODULE=config.settings.production ./env/bin/python"
-        pip = "./env/bin/pip"
 
         with cd(get_project_src(env.stage)):
             """
@@ -60,12 +60,12 @@ class Project(object):
             if not exists("env"):
                 run("virtualenv -p python3 env --always-copy --no-site-packages")
 
-            run("%(pip)s install -r requirements/production.txt" % {"pip": pip})
+            run("%(pip)s install -r requirements/production.txt" % {"pip": Project.pip})
             run("mkdir -p var/cache var/log var/db var/run var/bin")
-            run("%(python)s manage.py migrate" % {"python": python})
+            run("%(python)s manage.py migrate" % {"python": Project.python})
             run("%(python)s manage.py collectstatic \
                     -v 0 --noinput --traceback -i django_extensions \
-                    -i '*.coffee' -i '*.rb' -i '*.scss' -i '*.less' -i '*.sass'" % {"python": python})
+                    -i '*.coffee' -i '*.rb' -i '*.scss' -i '*.less' -i '*.sass'" % {"python": Project.python})
 
             run("rm -rf var/cache/*")
             run("rm -rf public/media/cache/*")
@@ -124,7 +124,7 @@ class Project(object):
         """
         with settings(user=make_user(env.project), password=env.passwd):
             with cd(get_project_src(env.stage)):
-                run("make superuser SETTINGS=config.settings.production")
+                run("%(python)s manage.py createsuperuser" % {"python": Project.python})
 
     @staticmethod
     def reset_env():
