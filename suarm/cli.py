@@ -154,7 +154,7 @@ def loadbalancer(create, delete, setup):
 @click.option('--renew-certificates', '-rw', is_flag=True, help='Renew SSL Certificates')
 @click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
 @click.option('--backup', '-r', is_flag=True, help='Download a backup from defined stage Server')
-@click.option('--command', '-cmd', type=str, default=None, help='Comando para python manage.py')
+@click.option('--command', '-cmd', is_flag=True, help='Comando para python manage.py')
 def server(listing, setup, clean, deploy, stage, fix_perms, add_remote, upload_keyfile,
            reset_db, reset_env, create_superuser, renew_certificates, restart, backup, command):
     servers = get_server_config()
