@@ -17,7 +17,7 @@ from .server.actions import (
     restart_server, deploy_django_application,
     fix_permissions, add_remote_server, upload_key_to_server,
     reset_database, reset_environment, renew_ssl_certificates,
-    createsuperuser, make_backup)
+    createsuperuser, make_backup, run_command)
 
 
 @click.group(chain=True)
@@ -154,8 +154,9 @@ def loadbalancer(create, delete, setup):
 @click.option('--renew-certificates', '-rw', is_flag=True, help='Renew SSL Certificates')
 @click.option('--restart', '-r', is_flag=True, help='Restart nodes in the cluster')
 @click.option('--backup', '-r', is_flag=True, help='Download a backup from defined stage Server')
+@click.option('--command', '-cmd', type=str, default=None, help='Comando para python manage.py')
 def server(listing, setup, clean, deploy, stage, fix_perms, add_remote, upload_keyfile,
-           reset_db, reset_env, create_superuser, renew_certificates, restart, backup):
+           reset_db, reset_env, create_superuser, renew_certificates, restart, backup, command):
     servers = get_server_config()
     if listing:
         print("\nLIST SERVERS\n")
@@ -194,6 +195,8 @@ def server(listing, setup, clean, deploy, stage, fix_perms, add_remote, upload_k
         restart_server(stage=stage)
     elif backup:
         make_backup(stage=stage)
+    elif command:
+        run_command(stage=stage, command=command)
     else:
         click.echo(servers)
 

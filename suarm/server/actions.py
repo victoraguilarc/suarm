@@ -221,6 +221,14 @@ def make_backup(stage="production"):
         execute(Project.backup, hosts=env.hosts)
         execute(Project.download_backup, hosts=env.hosts)
 
+
+def run_command(stage="production", command=None):
+    set_stage(stage)
+    set_user(superuser=True)
+    with settings(hide('warnings'), warn_only=True, ):
+        execute(Project.run_command, hosts=env.hosts)
+
+
 def renew_ssl_certificates(stage="production"):
     set_stage(stage)
     set_user(superuser=True)

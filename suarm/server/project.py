@@ -204,3 +204,9 @@ class Project(object):
         }, local_path=".", use_sudo=True)
         click.echo("---> MEDIA Backup                       OK")
         click.echo("----------------------------------------------------------\n")
+
+    @staticmethod
+    def run_command():
+        with settings(user=make_user(env.project), password=env.passwd):
+            with cd(get_project_src(env.stage)):
+                run("%(python)s manage.py loadddata" % {"python": Project.python})
