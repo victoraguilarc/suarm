@@ -17,7 +17,7 @@ zlib1g-dev
 git
 
 ## WEB SERVER
-nginx
+#nginx
 
 ## PS MONITOR
 supervisor
