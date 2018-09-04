@@ -104,10 +104,10 @@ def setup_server(stage="production"):
     execute(Server.web_server, hosts=env.hosts)
     execute(Server.gunicorn, hosts=env.hosts)
     execute(Server.supervisor, hosts=env.hosts)
-    execute(Server.letsencrypt, hosts=env.hosts)
     execute(Server.var, hosts=env.hosts)
     execute(Server.pip_cache, hosts=env.hosts)
     execute(Server.fix_permissions, hosts=env.hosts)
+    execute(Server.letsencrypt, hosts=env.hosts)
 
 
 def clean_server(stage="production"):
