@@ -92,11 +92,19 @@ class Server(object):
             if env.https:
                 # sudo("mkdir -p /etc/haproxy/certs")
 
-                sudo("certbot certonly --standalone -d %(domain)s \
-                -m %(email)s -n --agree-tos" % {
+                sudo("certbot certonly \
+                            --standalone \
+                            --agree-tos \
+                            --email %(email)s \
+                            --domains \"%(domain)s\" \
+                            --pre-hook \"service %(web_server)s stop\" \
+                            --post-hook \"service %(web_server)s start\" \
+                         " % {
                     "domain": env.domain,
                     "email": env.email,
                 })
+
+
                 sudo("bash -c 'cat /etc/letsencrypt/live/%(domain)s/fullchain.pem \
                 /etc/letsencrypt/live/%(domain)s/privkey.pem > /etc/haproxy/certs/%(domain)s.pem'" % {
                     "domain": env.domain,
@@ -253,15 +261,21 @@ class Server(object):
         2. Create DB and assign to user.
         """
         with settings(hide('warnings'), warn_only=True):
-            sudo('psql -c "CREATE USER %(db_user)s WITH NOCREATEDB NOCREATEUSER ENCRYPTED PASSWORD \'%(db_pass)s\'"' % {
+            sudo('psql -c "CREATE DATABASE %(db_name)s;"' % {
+                "db_name": make_app(env.project),
+            }, user='postgres')
+
+            sudo('psql -c "CREATE USER %(db_user)s WITH ENCRYPTED PASSWORD \'%(db_pass)s\'"' % {
                 "db_user": make_user(env.project),
                 "db_pass": env.passwd,
             }, user='postgres')
 
-            sudo('psql -c "CREATE DATABASE %(db_name)s WITH OWNER %(db_user)s"' % {
-                "db_name": make_app(env.project),
+            sudo('psql -c "GRANT ALL PRIVILEGES ON DATABASE %(db_name)s TO %(db_user)s;"' % {
                 "db_user": make_user(env.project),
+                "db_name": make_app(env.project),
             }, user='postgres')
+
+
 
     @staticmethod
     def git():
